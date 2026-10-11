@@ -1,0 +1,1606 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Заезды на виду</title>
+<meta name="description" content="HYGGE HOME: заезды на две недели, подготовка домов, заявки на закупку.">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#EDF1EF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1714" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Заезды">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610111521";</script>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600&display=swap">
+<style>
+/* Layout: two-week calendar grid (Mon–Sun) with guest bars → purchase section (totals across houses, request rows) → bottom sheet per booking with button-accordion blocks from КАНОН. Second tab: staff reports and purchase requests (signed-in viewers). */
+:root {
+  --bg: #EDF1EF;
+  --surface: #FFFFFF;
+  --surface-2: #F5F8F6;
+  --fg: #16231E;
+  --muted: #5A6B64;
+  --line: #D3DCD8;
+  --accent: #1F5C4A;
+  --accent-ink: #FFFFFF;
+  --ok-bg: #DAEAE3; --ok-ink: #1F5C4A;
+  --warn-bg: #FBE8D2; --warn-ink: #9A4708;
+  --bad-bg: #FDE4E1; --bad-ink: #8E1F14;
+  --h-nordic: #8E6356; --hi-nordic: #FFFFFF;
+  --h-hygge: #E2AE3F; --hi-hygge: #2A1F05;
+  --font-body: "Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Unbounded", "Onest", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1714; --surface: #16221E; --surface-2: #1C2A25; --fg: #E5EEEA; --muted: #93A59E; --line: #29393C;
+    --accent: #5FC5A2; --accent-ink: #0B1511;
+    --ok-bg: #1A3A31; --ok-ink: #6FD0AE;
+    --warn-bg: #3A2614; --warn-ink: #F2A862;
+    --bad-bg: #43201C; --bad-ink: #F4A59B;
+    --h-nordic: #A57C70; --hi-nordic: #FFFFFF; --h-hygge: #E8B54D; --hi-hygge: #2A1F05;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1714; --surface: #16221E; --surface-2: #1C2A25; --fg: #E5EEEA; --muted: #93A59E; --line: #29393C;
+  --accent: #5FC5A2; --accent-ink: #0B1511;
+  --ok-bg: #1A3A31; --ok-ink: #6FD0AE;
+  --warn-bg: #3A2614; --warn-ink: #F2A862;
+  --bad-bg: #43201C; --bad-ink: #F4A59B;
+  --h-nordic: #A57C70; --hi-nordic: #FFFFFF; --h-hygge: #E8B54D; --hi-hygge: #2A1F05;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; } /* иначе display:flex в правилах выше побеждает атрибут hidden */
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; padding-inline: 16px; padding-block: 18px 40px; }
+.wrap { max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.hdr { display: flex; flex-direction: column; gap: 8px; }
+.hrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.logo { height: 36px; width: auto; max-width: 100%; display: block; }
+.logo-dark { display: none; }
+:root[data-theme="dark"] .logo-dark { display: block; }
+:root[data-theme="dark"] .logo-light { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-dark { display: block; }
+  :root:not([data-theme="light"]) .logo-light { display: none; }
+}
+.theme .chip { font-size: 12px; padding: 5px 10px; }
+.chip.who { font-size: 13px; }
+/* Вход: имя один раз */
+#gate { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); overflow-y: auto; }
+.gcard { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; }
+.gcard .logo { height: 32px; }
+.sub { color: var(--muted); font-size: 13px; margin: 0; }
+h2.sec { font-family: var(--font-display); font-weight: 500; font-size: 15px; margin: 0; }
+h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 8px 0 0; }
+.stale { background: var(--bad-bg); color: var(--bad-ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 500; }
+
+.tabs { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+.tab { all: unset; cursor: pointer; flex: 1; text-align: center; font-size: 14px; font-weight: 600; padding: 8px 10px; border-radius: 9px; color: var(--muted); display: flex; justify-content: center; gap: 6px; align-items: center; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.badge { background: var(--warn-ink); color: var(--surface); font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.view { display: flex; flex-direction: column; gap: 14px; }
+
+/* Сетка недель (как в календаре телефона) */
+.cal { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.cal-hd, .wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.cal-hd { background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.cal-hd span { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 6px 0; }
+.wk { row-gap: 3px; padding-bottom: 8px; min-height: 64px; grid-auto-rows: min-content;
+  background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: calc(100% / 7) 100%; }
+.wk + .wk { border-top: 1px solid var(--line); }
+.dn { grid-row: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 5px 0 2px; font-variant-numeric: tabular-nums; }
+.dn.past { color: var(--muted); font-weight: 500; }
+.dn.now span { display: inline-block; min-width: 24px; padding: 2px 4px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); }
+.bar { all: unset; box-sizing: border-box; cursor: pointer; min-width: 0; margin: 0 2px; padding: 2px 5px; border-radius: 5px; background: var(--hc); color: var(--hi, #fff); font-size: 11.5px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar.cl { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.bar.cr { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.bar.past { opacity: 0.55; }
+.bar:focus-visible, .tab:focus-visible, .btn:focus-visible, .close:focus-visible, .check input:focus-visible, .field:focus-visible, .radio input:focus-visible, .blkhead:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.cal-ft { font-size: 12px; color: var(--muted); padding: 6px 10px; border-top: 1px solid var(--line); background: var(--surface-2); display: flex; gap: 14px; flex-wrap: wrap; }
+.cal-ft span { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--hc); display: inline-block; }
+.empty { color: var(--muted); font-size: 13.5px; padding: 8px 10px; }
+.hint { font-size: 13px; color: var(--muted); }
+.hint.err { color: var(--bad-ink); }
+.pill { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.warn { background: var(--warn-bg); color: var(--warn-ink); }
+.pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.pill.bad { background: var(--bad-bg); color: var(--bad-ink); }
+.pill.neutral { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+
+/* Задания по дому */
+.tasks { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.task { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--hc, var(--line)); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.task .ttxt { font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.task .meta { font-size: 12.5px; color: var(--muted); }
+.task.done { opacity: 0.6; }
+.tform { background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; }
+
+/* Закупка */
+.buy { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.reqsum { background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.reqsum .rtitle { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.reqsum .rlist { font-size: 14.5px; overflow-wrap: anywhere; }
+.reqsum .rlist b { font-variant-numeric: tabular-nums; }
+.rtable { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.rrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--line); }
+.rrow:first-child { border-top: 0; }
+.rrow .rn { font-size: 14.5px; min-width: 0; overflow-wrap: anywhere; }
+.rrow .rn small { display: block; color: var(--muted); font-size: 12px; }
+.rrow .rq { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 14.5px; text-align: right; }
+.rrow .rq small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; }
+.rrow.on { background: var(--surface-2); }
+.rpanel { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 8px; padding: 4px 0 4px; }
+.rline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
+.rline .num { width: 88px; }
+.rline .sel { flex: 1; min-width: 150px; }
+.tx-inline { all: unset; cursor: pointer; font-weight: 700; color: var(--muted); padding: 4px 6px; }
+.rline .buyq { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.rline .buyq.zero { color: var(--muted); font-weight: 500; }
+
+/* Карточка брони */
+#overlay { position: fixed; inset: 0; background: rgba(8, 14, 12, 0.55); z-index: 10; }
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 11; max-height: 92%; overflow-y: auto; background: var(--surface); color: var(--fg); border-radius: 18px 18px 0 0; padding: 18px 16px; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); max-width: 640px; margin-inline: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -8px 30px rgba(0,0,0,0.25); }
+.shead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.stitle { font-family: var(--font-display); font-weight: 500; font-size: 18px; margin: 0; overflow-wrap: anywhere; }
+.shouse { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--muted); }
+.close { all: unset; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent); padding: 4px 2px; flex: none; }
+.facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14.5px; margin: 0; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.note { background: var(--ok-bg); color: var(--fg); border-radius: 10px; padding: 10px 12px; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.blocks { display: flex; flex-direction: column; gap: 8px; }
+/* Фазы брони: «До заезда» и «Гости в доме и выезд» */
+.phase { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.phase.active { border-color: var(--accent); }
+.phasehead { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px; cursor: pointer; font-family: var(--font-display); font-weight: 500; font-size: 14px; background: var(--surface-2); }
+.phase.active .phasehead { background: var(--accent); color: var(--accent-ink); }
+.phasehead .arr { opacity: 0.85; }
+.phasehead .ttl { flex: 1; min-width: 0; }
+.phasehead .when { font-family: var(--font-body); font-size: 12px; font-weight: 600; opacity: 0.85; flex: none; }
+.phasebody { padding: 8px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); }
+.phasebody .blk { background: var(--surface-2); }
+.evlist { display: flex; flex-direction: column; gap: 6px; }
+.ev { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.ev .pill { flex: none; margin-top: 1px; }
+.ev .evt { min-width: 0; overflow-wrap: anywhere; }
+.ev .evm { display: block; font-size: 12px; color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.plain { margin: 0; padding-left: 18px; font-size: 14.5px; display: flex; flex-direction: column; gap: 4px; }
+.blk { border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); overflow: hidden; }
+.blkhead { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 8px; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.blkhead .arr { color: var(--muted); }
+/* Стрелка раздела: вниз — можно открыть, вверх — собрать */
+.arr { width: 14px; height: 14px; flex: none; transition: transform 0.15s; }
+[aria-expanded="true"] > .arr { transform: rotate(180deg); }
+.blk.buyfold { background: var(--surface); }
+.blk.buyfold .blkbody { padding: 8px; background: var(--surface-2); }
+.blkhead .ttl { flex: 1; min-width: 0; }
+.blkhead .cnt { font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+.blkhead .cnt.done { color: var(--ok-ink); }
+.blkbody { padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-top: 1px solid var(--line); }
+.lead { margin: 0; font-size: 14px; }
+.lead.warn { color: var(--warn-ink); }
+.check { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; padding: 5px 0; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--accent); }
+.check input:checked + span { color: var(--muted); text-decoration: line-through; }
+.foot { color: var(--muted); font-size: 12.5px; }
+
+.form { display: flex; flex-direction: column; gap: 10px; }
+.grp { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.radio { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 6px 0; cursor: pointer; }
+.radio input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.lbl { font-size: 12.5px; color: var(--muted); font-weight: 600; display: flex; flex-direction: column; gap: 4px; }
+.field { font: inherit; font-size: 15px; color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; width: 100%; min-width: 0; }
+textarea.field { min-height: 70px; resize: vertical; }
+.btn { font: inherit; font-size: 15px; font-weight: 700; padding: 11px 16px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+a.btn { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
+/* Подсказка «поставь на экран Домой» — один раз */
+.a2hs { background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
+.a2hs ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.a2hs .ttl { font-weight: 700; }
+.btn.secondary { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); font-weight: 600; }
+.btn.sm { font-size: 13px; padding: 7px 12px; border-radius: 8px; }
+.btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: 0.6; cursor: default; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pgrp { display: flex; flex-direction: column; gap: 8px; }
+.thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.thumb { position: relative; width: 84px; height: 84px; }
+.thumb img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.thumb .tx { all: unset; position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--fg); color: var(--bg); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.photos figure { margin: 0; min-width: 0; }
+.photos img { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+.photos figcaption { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.fallback { font: inherit; font-size: 13px; width: 100%; min-height: 110px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); border-radius: 9px; padding: 8px; }
+
+.report { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.report.seen { opacity: 0.65; }
+.report .meta { font-size: 13px; color: var(--muted); }
+.report .txt { font-size: 14.5px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.report .who { font-size: 16px; font-weight: 600; }
+.row1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.kind { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.reports { display: flex; flex-direction: column; gap: 8px; }
+
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; max-width: calc(100% - 32px); text-align: center; }
+@media (prefers-reduced-motion: no-preference) { #sheet { animation: up 0.18s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } } }
+</style>
+
+<div class="wrap">
+  <header class="hdr">
+    <img class="logo logo-light" src="logo-light.svg" alt="HYGGE HOME" width="507" height="96">
+    <img class="logo logo-dark" src="logo-dark.svg" alt="HYGGE HOME" width="507" height="96">
+    <div class="hrow">
+      <h1>Заезды на виду</h1>
+      <button class="chip who" id="who" type="button" title="Сменить имя"></button>
+    </div>
+    <div class="theme chips" id="theme" role="group" aria-label="Тема"></div>
+    <p class="sub" id="range"></p>
+  </header>
+  <div id="stale" class="stale" hidden></div>
+  <div id="a2hs" class="a2hs" hidden></div>
+  <nav class="tabs" id="tabs" role="tablist" hidden>
+    <button class="tab" id="tab-schedule" type="button" role="tab" aria-selected="true">График</button>
+    <button class="tab" id="tab-reports" type="button" role="tab" aria-selected="false">Отчёты <span class="badge" id="rbadge" hidden></span></button>
+  </nav>
+  <section class="view" id="view-schedule">
+    <section class="cal" id="cal" aria-label="Сетка заездов по неделям"></section>
+    <p class="hint">Нажми на имя гостя: откроются даты, комментарий из календаря и чек-листы подготовки.</p>
+    <section class="tasks" id="tasks" aria-label="Задания по дому"></section>
+    <section class="buy" id="buy" aria-label="Закупка на ближайшие заезды"></section>
+  </section>
+  <section class="view" id="view-reports" hidden>
+    <p class="hint" id="rintro">Отчёты сотрудников и заявки на закупку. Новые сверху.</p>
+    <div class="reports" id="reports"></div>
+  </section>
+  <p class="foot" id="foot"></p>
+</div>
+
+<div id="gate" role="dialog" aria-modal="true" aria-labelledby="gtitle" hidden>
+  <div class="gcard">
+    <img class="logo logo-light" src="logo-light.svg" alt="HYGGE HOME" width="507" height="96">
+    <img class="logo logo-dark" src="logo-dark.svg" alt="HYGGE HOME" width="507" height="96">
+    <h2 class="stitle" id="gtitle">Как тебя зовут?</h2>
+    <p class="lead">Имя подставится во все отчёты и заявки. Спрашиваем один раз.</p>
+    <div class="chips" id="gnames"></div>
+    <input class="field" id="gname" type="text" placeholder="Или впиши имя" autocomplete="given-name">
+    <div class="btnrow"><button class="btn" id="genter" type="button">Войти</button><span class="hint" id="ghint"></span></div>
+  </div>
+</div>
+<div id="overlay" hidden></div>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="stitle" hidden></div>
+<div id="toast" role="status" hidden></div>
+
+<script id="app-data" type="application/json">
+{"generated":"","houses":[{"id":"nordic","name":"NORDIC"},{"id":"hygge","name":"HYGGE"}],"bookings":[],"rules":{"source":"КАНОН · 06_Welcome_пакет_и_предметы_дома v1.0 · 11.10.2026","breakfast":{"rule":"Нет нормы на N ночей → норма на 1 ночь × N. Сметана в закупке считается упаковками по 500 г с округлением вверх (решения Сергея, 11.10.2026).","hygge":{"per_night":[{"n":"Яйца","q":10,"u":"шт"},{"n":"Сметана","q":500,"u":"г","pack":500},{"n":"Творог","q":500,"u":"г"},{"n":"Молоко","q":1,"u":"л"},{"n":"Маршмеллоу","q":1,"u":"пакет","adj":"большой"}],"exact":{}},"nordic":{"per_night":[{"n":"Яйца","q":6,"u":"шт"},{"n":"Сметана","q":250,"u":"г","alt":"или одна большая 500 г","pack":500},{"n":"Творог","q":350,"u":"г"},{"n":"Молоко","q":1,"u":"л"},{"n":"Маршмеллоу","q":1,"u":"пакет","adj":"маленький"}],"exact":{"2":[{"n":"Яйца","q":12,"u":"шт"},{"n":"Сметана","q":500,"u":"г","alt":"одна пачка 500 г, не две","pack":500},{"n":"Творог","q":500,"u":"г"},{"n":"Молоко","q":2,"u":"л"},{"n":"Маршмеллоу","q":2,"u":"пакет","adj":"маленький"}]}}},"house":{"hygge":["Тапочки домашние белые: 10–12 пар","Тапочки уличные чёрные: 10–12 пар","В каждый из 3 санузлов: туалетная бумага 2 рулона, фен 1 шт","Жидкое мыло 300 мл (⚠ уточняется: на дом или в каждый санузел)","Шампунь одноразовый 6 шт","Гель для душа одноразовый 6 шт","Зубные щётки 6 шт","Полотенце для тела 4–6 шт","Полотенце для рук 1 шт","Кухня: таблетки для посудомойки 4 шт","Кухня: масло подсолнечное 300 г","Кухня: жидкость для мытья посуды 300 мл, губка 1 шт, тряпочка 1 шт","Доска: мелки и тряпочка для доски 1 шт"],"nordic":["Тапочки домашние белые: 6 пар","Тапочки уличные чёрные: 6 пар","Санузел: туалетная бумага 2 рулона, фен 1 шт","Жидкое мыло 300 мл","Шампунь одноразовый 6 шт","Гель для душа одноразовый 6 шт","Зубные щётки 6 шт","Полотенце для тела 4–6 шт","Полотенце для рук 1 шт","Кухня: таблетки для посудомойки 4 шт","Кухня: масло подсолнечное 300 г","Кухня: жидкость для мытья посуды 300 мл, губка 1 шт, тряпочка 1 шт","Доска: мелки и тряпочка для доски 1 шт"]},"banya":{"hygge":{"title":"Готовность бани","lead":"Русская баня, отдельное помещение.","items":["Шампунь 300 мл","Гель для душа 300 мл","Полотенце для тела 6–8 шт","Простыня для парной 8–10 шт","Шапочки 6 шт","Тапочки синие 8 пар","Купель наполнена","Проверь комментарий к брони: нужен ли особый режим бани"]},"nordic":{"title":"Готовность сауны","lead":"Сауна внутри дома, электрическая. Гости включают сами.","items":["Простыни для парной 6 шт","Полотенца для парной 6 шт","Шапочки 6 шт","Проверь комментарий к брони: нужен ли особый режим сауны"]}},"bbq":{"hygge":["Перчатки 1 шт","Баллончик газа 1 шт, горелка 1 шт","Древесный уголь 3 кг","Охапка дров выставлена на фаер-плейсе","Запасная вязанка дров лежит в открытом садовом сарае","Решётка для жарки 2 шт","Шампуры 20–30 шт","Жидкость для мытья посуды 300 мл, губка 1 шт","Металлическая щётка 1 шт","Кочерга, совок, топор на месте","Казан и мангал на месте","Коктейльница 1 шт"],"nordic":["Перчатки 1 шт","Баллончик газа 1 шт, горелка 1 шт","Древесный уголь 3 кг","Охапка дров выставлена на фаер-плейсе","Запасная вязанка дров лежит в открытом садовом сарае","Решётка для жарки 2 шт","Шампуры 20–30 шт","Жидкость для мытья посуды 300 мл, губка 1 шт","Металлическая щётка 1 шт","Кочерга, совок, топор на месте","Казан и мангал на месте","Коктейльница 1 шт"]},"cleaning":{"express":["Сменить постельное бельё и полотенца","Санузел: убрать и продезинфицировать","Полы и видимые поверхности","Вынести мусор, помыть посуду","Осмотреть дом: забытые вещи, повреждения"],"regular":["Всё из экспресс-уборки","Протереть труднодоступные места: под шкафами и диванами, плинтусы, верх шкафов","Окна и зеркала без разводов","Проверить расходники и пополнить запасы"]},"supplies":{"rule":"Набор на заезд × число заездов в ближайшие 14 дней. Источник: КАНОН F-065, F-066, F-071, F-072.","perStay":{"hygge":[{"n":"Туалетная бумага","q":6,"u":"рулон","note":"по 2 в каждый из 3 санузлов"},{"n":"Жидкое мыло 300 мл","q":1,"u":"шт"},{"n":"Шампунь одноразовый","q":6,"u":"шт"},{"n":"Гель для душа одноразовый","q":6,"u":"шт"},{"n":"Зубные щётки","q":6,"u":"шт"},{"n":"Таблетки для посудомойки","q":4,"u":"шт"},{"n":"Масло подсолнечное 300 г","q":1,"u":"шт"},{"n":"Жидкость для мытья посуды 300 мл","q":1,"u":"шт"},{"n":"Губка для посуды","q":1,"u":"шт"},{"n":"Тряпочка для кухни","q":1,"u":"шт"},{"n":"Тряпочка для доски","q":1,"u":"шт"},{"n":"Мелки для доски","q":1,"u":"набор"}],"nordic":[{"n":"Туалетная бумага","q":2,"u":"рулон"},{"n":"Жидкое мыло 300 мл","q":1,"u":"шт"},{"n":"Шампунь одноразовый","q":6,"u":"шт"},{"n":"Гель для душа одноразовый","q":6,"u":"шт"},{"n":"Зубные щётки","q":6,"u":"шт"},{"n":"Таблетки для посудомойки","q":4,"u":"шт"},{"n":"Масло подсолнечное 300 г","q":1,"u":"шт"},{"n":"Жидкость для мытья посуды 300 мл","q":1,"u":"шт"},{"n":"Губка для посуды","q":1,"u":"шт"},{"n":"Тряпочка для кухни","q":1,"u":"шт"},{"n":"Тряпочка для доски","q":1,"u":"шт"},{"n":"Мелки для доски","q":1,"u":"набор"}]},"house":[{"n":"Постельное бельё","variants":["Комплект 2-спальный","Комплект 1-спальный","Пододеяльник","Простыня","Наволочка","Бельё для дивана"],"hint":"для какого дома"},{"n":"Полотенца","variants":["Для тела","Для рук","Для парной","Простыня для парной"],"hint":"цвет, дом"},{"n":"Шапочки для бани","hint":"дом"},{"n":"Тапочки","variants":["Домашние белые","Уличные чёрные","Для бани синие"],"hint":"размер, дом"},{"n":"Пакеты мусорные","variants":["240 л","120 л","60 л","30 л"],"hint":"сколько рулонов или штук"},{"n":"Пакеты для гостей","variants":["Маечки отрывные, рулон","Прозрачные отрывные для продуктов, рулон"],"hint":"рулонов"},{"n":"Лампочки","variants":["Цоколь E27","Цоколь E14","Цоколь GU10","Другой цоколь"],"hint":"куда именно"},{"n":"Батарейки","variants":["AA","AAA","CR2032","Другие"],"hint":"для чего"},{"n":"Удлинитель или розетка","hint":"сколько гнёзд, куда"},{"n":"Фен","hint":"дом, санузел"},{"n":"Утюг","hint":"дом"},{"n":"Гладильная доска","hint":"дом"},{"n":"Сушилка для белья","hint":"дом"},{"n":"Бумажные полотенца","hint":"дом"},{"n":"Фольга, пергамент, пакеты для еды","hint":"что именно"},{"n":"Перчатки для барбекю","hint":"дом"},{"n":"Баллончик газа и горелка","hint":"дом"},{"n":"Древесный уголь","hint":"кг, дом"},{"n":"Дрова","hint":"вязанок, дом"},{"n":"Шампуры, решётки для жарки","hint":"что и сколько"},{"n":"Посуда, приборы","variants":["Тарелки","Стаканы, бокалы","Ножи","Доски разделочные","Приборы","Кастрюли, сковороды","Другое"],"hint":"что разбито или не хватает"},{"n":"Другое","hint":"напиши, что именно и куда"}],"cleaning":[{"n":"Стиральный порошок","hint":"кг или штук"},{"n":"Кондиционер для белья","hint":"литров"},{"n":"Средство для сантехники","variants":["Унитаз","Душ и плитка","Раковина, смесители"],"hint":""},{"n":"Средство для стёкол и зеркал","hint":""},{"n":"Средство для пола","hint":"тип пола"},{"n":"Средство для кухни и жира","hint":""},{"n":"Средство от накипи","variants":["Чайник","Посудомойка","Кофемашина"],"hint":""},{"n":"Соль и ополаскиватель для посудомойки","hint":""},{"n":"Губки и тряпки для уборки","hint":"какие"},{"n":"Перчатки хозяйственные","hint":"размер"},{"n":"Мешки для мусора большие","variants":["240 л","120 л"],"hint":""},{"n":"Освежитель воздуха","hint":"запах, куда"},{"n":"Швабра, насадки, ведро","hint":"что именно"},{"n":"Другое для уборки","hint":"напиши, что именно"}]}},"insights":{},"tasks":[]}
+</script>
+
+<script>
+// ДАННЫЕ. Основной источник: файл data.json рядом со страницей (его обновляет агент «Заезды на виду»).
+// Блок app-data выше — запасная копия на случай, если файл недоступен. Контактов гостей здесь нет.
+var DATA = JSON.parse(document.getElementById("app-data").textContent);
+var REPORTS = [], REQUESTS = [], EVENTS = [], TASKS = [];
+var MODE = { db: null, user: null, me: "", isOwner: false, canWrite: null, writeRefused: false };
+var EVENT_TYPES = {
+  request: { t: "Просьба", cls: "ok", hint: "что попросили гости: ножи, доски, дрова…" },
+  violation: { t: "Нарушение", cls: "bad", hint: "шум после 23:00, курение, лишние гости…" },
+  note: { t: "Заметка", cls: "neutral", hint: "что заметили: привычки, пожелания, похвала…" }
+};
+
+var MONTHS = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+var WD = ["вс","пн","вт","ср","чт","пт","сб"];
+var STATUS = {
+  ready: { t: "Дом готов к заезду", cls: "ok", kind: "checkin", glyph: "✓" },
+  notready: { t: "Дом не готов, нужна помощь", cls: "bad", kind: "checkin", glyph: "!" },
+  ok: { t: "Выехали, всё в порядке", cls: "ok", kind: "checkout", glyph: "✓" },
+  issues: { t: "Выехали, есть замечания", cls: "warn", kind: "checkout", glyph: "!" },
+  stayed: { t: "Не выехали", cls: "bad", kind: "checkout", glyph: "✕" }
+};
+
+function dOf(s) { return s.slice(0, 10); }
+function tOf(s) { return s.slice(11, 16); }
+function utc(d) { var p = d.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+function addDays(d, n) { return new Date(utc(d) + n * 86400000).toISOString().slice(0, 10); }
+function dayDiff(a, b) { return Math.round((utc(b) - utc(a)) / 86400000); }
+function fmt(d) { var p = d.split("-"); return +p[2] + " " + MONTHS[+p[1] - 1]; }
+function fmtDT(s) { return s && s.length >= 16 ? fmt(dOf(s)) + " " + tOf(s) : (s || ""); }
+function wd(d) { return WD[new Date(utc(d)).getUTCDay()]; }
+function nightsOf(b) { return Math.max(1, dayDiff(dOf(b.inAt), dOf(b.outAt))); }
+function plural(n, forms) { var m = n % 10, c = n % 100; return forms[(m === 1 && c !== 11) ? 0 : (m >= 2 && m <= 4 && (c < 12 || c > 14)) ? 1 : 2]; }
+function nightsWord(n) { return n + " " + plural(n, ["ночь", "ночи", "ночей"]); }
+function numRu(x) { return String(Math.round(x * 100) / 100).replace(".", ","); }
+function unitText(q, u, adj) {
+  if (u === "г") return q >= 1000 && q % 50 === 0 ? numRu(q / 1000) + " кг" : q + " г";
+  if (u === "л") return numRu(q) + " л";
+  if (u === "шт") return q + " шт";
+  if (u === "рулон") return q + " " + plural(q, ["рулон", "рулона", "рулонов"]);
+  if (u === "набор") return q + " " + plural(q, ["набор", "набора", "наборов"]);
+  if (u === "пакет") {
+    var a = adj === "большой" ? ["большой", "больших", "больших"] : adj === "маленький" ? ["маленький", "маленьких", "маленьких"] : null;
+    return q + " " + (a ? plural(q, a) + " " : "") + plural(q, ["пакет", "пакета", "пакетов"]);
+  }
+  return q + " " + u;
+}
+function houseOf(id) { return DATA.houses.filter(function (h) { return h.id === id; })[0] || { id: id, name: id }; }
+function byId(id) { return DATA.bookings.filter(function (b) { return b.id === id; })[0]; }
+function almatyNow() {
+  try { return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Almaty", hour12: false }).replace(" ", "T").slice(0, 16); }
+  catch (e) { return new Date().toISOString().slice(0, 16); }
+}
+var TODAY = almatyNow().slice(0, 10);
+var LAST = addDays(TODAY, 13);
+var lastFocus = null;
+
+function el(tag, cls, text) {
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+function store(key, val) {
+  try { if (val === undefined) return localStorage.getItem(key); if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val); } catch (e) {}
+  return null;
+}
+var toastTimer = null;
+function toast(msg) {
+  var t = document.getElementById("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.hidden = true; }, 3500);
+}
+function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
+
+// ---------- Вход: имя спрашиваем один раз, дальше подставляем везде ----------
+var TEAM = ["Дулат", "Ирина"]; // сотрудники; Сергей и Олеся входят через аккаунт claude.ai
+function whoAmI() { return (store("zz:name") || MODE.me || "").trim(); }
+function renderWho() {
+  var b = document.getElementById("who"); if (!b) return;
+  var n = whoAmI();
+  b.textContent = n ? "👤 " + n : "👤 Войти";
+}
+function openGate() {
+  var g = document.getElementById("gate");
+  var names = document.getElementById("gnames"), inp = document.getElementById("gname");
+  names.textContent = "";
+  var cur = whoAmI();
+  TEAM.forEach(function (n) {
+    var c = el("button", "chip", n); c.type = "button"; c.setAttribute("aria-pressed", String(n === cur));
+    c.addEventListener("click", function () { inp.value = n; Array.prototype.forEach.call(names.children, function (x) { x.setAttribute("aria-pressed", String(x === c)); }); });
+    names.appendChild(c);
+  });
+  inp.value = cur;
+  document.getElementById("ghint").textContent = "";
+  g.hidden = false;
+  if (!cur) setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
+}
+function closeGate() {
+  var inp = document.getElementById("gname");
+  var n = inp.value.trim().replace(/\s+/g, " ").slice(0, 40);
+  if (!n) { document.getElementById("ghint").textContent = "Выбери или впиши имя."; return; }
+  store("zz:name", n);
+  document.getElementById("gate").hidden = true;
+  renderWho();
+  toast("Привет, " + n + "!");
+  renderA2hs();
+}
+document.getElementById("genter").addEventListener("click", closeGate);
+document.getElementById("gname").addEventListener("keydown", function (e) { if (e.key === "Enter") closeGate(); });
+document.getElementById("who").addEventListener("click", openGate);
+
+// ---------- Простой путь без входа в claude.ai: отчёты и заявки уходят в WhatsApp ----------
+var UA = navigator.userAgent || "";
+var IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+var IS_ANDROID = /Android/i.test(UA);
+var IS_WEBVIEW = /; wv\)/.test(UA) || /\bClaude\//i.test(UA); // встроенный браузер приложения (например, приложения Claude): камера и галерея там не открываются
+var STAFF_CHAT = "Чистота и уют";
+function waUrl(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
+function dataUrlToFile(dataUrl, name) {
+  try {
+    var m = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(dataUrl); if (!m) return null;
+    var bin = m[2] ? atob(m[3]) : decodeURIComponent(m[3]);
+    var u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new File([u8], name, { type: m[1] || "image/jpeg" });
+  } catch (e) { return null; }
+}
+// Фото можно передать в WhatsApp через системное «Поделиться» (если телефон это умеет).
+function shareableFiles(photos) {
+  if (!photos || !photos.length || !navigator.share || !navigator.canShare) return null;
+  var files = photos.map(function (p, i) { return dataUrlToFile(p.dataUrl, "foto-" + (i + 1) + ".jpg"); }).filter(Boolean);
+  if (!files.length) return null;
+  try { return navigator.canShare({ files: files }) ? files : null; } catch (e) { return null; }
+}
+var NO_FILE_SHARE = false; // после первой неудачи с фото — только текст по ссылке
+// Кнопка «Отправить в WhatsApp»: build() возвращает текст (или null и сама пишет подсказку), getPhotos() — фото.
+function waButton(id, build, getPhotos, hint, after) {
+  var a = el("a", "btn", "Отправить в WhatsApp"); a.id = id; a.href = "#"; a.target = "_blank"; a.rel = "noopener noreferrer";
+  a.addEventListener("click", function (e) {
+    hint.className = "hint";
+    var text = build();
+    if (!text) { e.preventDefault(); return; }
+    var photos = getPhotos ? getPhotos() : [];
+    var files = NO_FILE_SHARE ? null : shareableFiles(photos);
+    if (files) {
+      e.preventDefault();
+      navigator.share({ text: text, files: files }).then(function () {
+        hint.textContent = "Ушло в WhatsApp."; toast("Отправлено"); if (after) after();
+      }, function (err) {
+        if (err && err.name === "AbortError") { hint.textContent = "Отправка отменена."; return; }
+        NO_FILE_SHARE = true;
+        var w = null; try { w = window.open(waUrl(text), "_blank"); if (w) w.opener = null; } catch (e2) {}
+        hint.textContent = w ? "Открылся WhatsApp без фото — прикрепи их из галереи." : "Нажми ещё раз: откроется WhatsApp, фото прикрепи из галереи.";
+      });
+      return;
+    }
+    a.href = waUrl(text);
+    hint.textContent = "Выбери чат «" + STAFF_CHAT + "» и отправь." + (photos.length ? " Фото прикрепи из галереи." : "");
+    if (after) after();
+  });
+  return a;
+}
+// Запасной вариант, если WhatsApp не открылся: текст в буфер обмена.
+function copyButton(id, build, hint, fb) {
+  var b = el("button", "btn secondary", "Скопировать текст"); b.type = "button"; b.id = id;
+  b.addEventListener("click", function () {
+    hint.className = "hint";
+    var text = build(); if (!text) return;
+    var done = function () { hint.textContent = "Скопировано. Вставь в чат «" + STAFF_CHAT + "»."; toast("Скопировано"); };
+    var manual = function () { if (fb) { fb.hidden = false; fb.value = text; fb.focus(); fb.select(); } hint.textContent = "Выдели текст ниже и скопируй его в чат."; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, manual); else manual();
+  });
+  return b;
+}
+// Подсказка «поставь на экран Домой»: один раз, только на телефоне, только после входа по имени.
+function renderA2hs() {
+  var box = document.getElementById("a2hs"); if (!box) return;
+  var standalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  if (store("zz:a2hs") || standalone || MODE.me || !(IS_IOS || IS_ANDROID) || !whoAmI()) { box.hidden = true; return; }
+  box.textContent = "";
+  if (INSTALL_EVT) {
+    // Android: системная установка одним нажатием.
+    box.appendChild(el("div", "ttl", "📲 Установи как приложение — иконка на экране, открывается без браузера"));
+    var irow = el("div", "btnrow");
+    var ib = el("button", "btn", "Установить приложение"); ib.type = "button"; ib.id = "a2hs-install";
+    ib.addEventListener("click", function () {
+      var ev = INSTALL_EVT; if (!ev) return;
+      ev.prompt();
+      ev.userChoice.then(function (c) { if (c && c.outcome === "accepted") { INSTALL_EVT = null; store("zz:a2hs", "1"); box.hidden = true; } }, function () {});
+    });
+    var later = el("button", "btn secondary sm", "Позже"); later.type = "button"; later.id = "a2hs-later";
+    later.addEventListener("click", function () { box.hidden = true; });
+    irow.appendChild(ib); irow.appendChild(later); box.appendChild(irow);
+    box.hidden = false; return;
+  }
+  box.appendChild(el("div", "ttl", "📲 Поставь на экран «Домой» — будет открываться как приложение"));
+  var ol = document.createElement("ol");
+  var steps = ["Если открылось внутри WhatsApp — нажми ⋮ → «Открыть в Chrome».", "В Chrome нажми ⋮ (вверху справа) → «Установить приложение» (или «Добавить на главный экран») → «Установить».", "Дальше открывай только с иконки: имя и галочки сохранятся."];
+  steps.forEach(function (s) { var li = document.createElement("li"); li.textContent = s; ol.appendChild(li); });
+  box.appendChild(ol);
+  var row = el("div", "btnrow");
+  var ok = el("button", "btn sm", "Понятно"); ok.type = "button"; ok.id = "a2hs-ok";
+  ok.addEventListener("click", function () { store("zz:a2hs", "1"); box.hidden = true; });
+  row.appendChild(ok);
+  box.appendChild(row);
+  box.hidden = false;
+}
+// Вход: вошедшим в claude.ai (Сергей, Олеся) имя даёт аккаунт — экран имени не показываем.
+// Остальным — экран имени, но не раньше, чем ответит платформа (до 2,5 с).
+var GATE_TIMER = null;
+function bootGate() {
+  if (whoAmI()) { renderA2hs(); return; }
+  if (!window.claude || typeof window.claude.use !== "function") { openGate(); return; }
+  GATE_TIMER = setTimeout(function () { GATE_TIMER = null; if (!whoAmI()) openGate(); }, 2500);
+}
+function accountKnown() {
+  if (GATE_TIMER) { clearTimeout(GATE_TIMER); GATE_TIMER = null; }
+  var g = document.getElementById("gate");
+  if (whoAmI()) { if (g && !g.hidden && MODE.me) g.hidden = true; renderWho(); }
+  else if (g && g.hidden) openGate();
+  renderA2hs();
+}
+
+// Тип уборки после выезда: если в тот же день в этот же дом есть заезд, это экспресс.
+function cleaningFor(b) {
+  var od = dOf(b.outAt);
+  var same = DATA.bookings.filter(function (x) { return x.house === b.house && x.id !== b.id && dOf(x.inAt) === od; })[0];
+  if (same) return { type: "express", until: tOf(same.inAt), next: same };
+  var later = DATA.bookings.filter(function (x) { return x.house === b.house && x.id !== b.id && dOf(x.inAt) > od; })
+    .sort(function (a, c) { return a.inAt < c.inAt ? -1 : 1; })[0];
+  return { type: "regular", until: null, next: later || null };
+}
+function latestReport(bid, kind) {
+  return REPORTS.filter(function (r) { return r.bookingId === bid && r.kind === kind; })[0] || null;
+}
+
+// ---------- Сетка недель (как в календаре телефона) ----------
+// Недели (пн–вс), которые покрывают 14 дней вперёд от сегодня: обычно две, три — когда сегодня конец недели.
+function weekStart(d) { var w = new Date(utc(d)).getUTCDay(); return addDays(d, w === 0 ? -6 : 1 - w); }
+function renderCal() {
+  var box = document.getElementById("cal");
+  box.textContent = "";
+  var list = DATA.bookings;
+  var starts = [], ws0 = weekStart(TODAY);
+  while (ws0 <= LAST) { starts.push(ws0); ws0 = addDays(ws0, 7); }
+  var hd = el("div", "cal-hd");
+  ["пн","вт","ср","чт","пт","сб","вс"].forEach(function (n) { hd.appendChild(el("span", null, n)); });
+  box.appendChild(hd);
+  var any = false;
+  starts.forEach(function (ws) {
+    var we = addDays(ws, 6);
+    var wk = el("div", "wk");
+    for (var i = 0; i < 7; i++) {
+      var d = addDays(ws, i);
+      var dn = el("div", "dn" + (d < TODAY ? " past" : d === TODAY ? " now" : ""));
+      dn.style.gridColumn = String(i + 1);
+      var p = d.split("-"); dn.appendChild(el("span", null, String(+p[2]) + (p[2] === "01" ? " " + MONTHS[+p[1] - 1] : "")));
+      wk.appendChild(dn);
+    }
+    var segs = list.filter(function (b) { return dOf(b.inAt) <= we && dOf(b.outAt) >= ws; })
+      .sort(function (a, c) { return a.inAt < c.inAt ? -1 : a.inAt > c.inAt ? 1 : (a.house < c.house ? -1 : 1); });
+    var lanes = [];
+    segs.forEach(function (b) {
+      any = true;
+      var s = dOf(b.inAt) < ws ? ws : dOf(b.inAt), e = dOf(b.outAt) > we ? we : dOf(b.outAt);
+      var c0 = dayDiff(ws, s), c1 = dayDiff(ws, e);
+      var lane = 0;
+      while (lanes[lane] != null && lanes[lane] >= c0) lane++;
+      lanes[lane] = c1;
+      var h = houseOf(b.house);
+      var bar = el("button", "bar" + (dOf(b.inAt) < ws ? " cl" : "") + (dOf(b.outAt) > we ? " cr" : "") + (dOf(b.outAt) < TODAY ? " past" : ""));
+      bar.type = "button";
+      bar.style.setProperty("--hc", "var(--h-" + h.id + ")");
+      bar.style.setProperty("--hi", "var(--hi-" + h.id + ", #fff)");
+      bar.style.gridColumn = (c0 + 1) + " / " + (c1 + 2);
+      bar.style.gridRow = String(lane + 2);
+      var rep = latestReport(b.id, "checkout") || latestReport(b.id, "checkin");
+      bar.textContent = (rep && STATUS[rep.status] ? STATUS[rep.status].glyph + " " : "") + b.guest + (b.tag ? " " + b.tag : "");
+      bar.title = h.name + " · " + b.guest + " · " + fmtDT(b.inAt) + " → " + fmtDT(b.outAt);
+      bar.setAttribute("aria-label", bar.title);
+      bar.addEventListener("click", function () { openSheet(b.id, bar); });
+      wk.appendChild(bar);
+    });
+    box.appendChild(wk);
+  });
+  if (!any) box.appendChild(el("p", "empty", "На эти недели броней нет."));
+  var ft = el("div", "cal-ft");
+  DATA.houses.forEach(function (h) {
+    var s = el("span");
+    var dot = el("i", "dot"); dot.style.setProperty("--hc", "var(--h-" + h.id + ")");
+    s.appendChild(dot); s.appendChild(document.createTextNode(h.name));
+    ft.appendChild(s);
+  });
+  box.appendChild(ft);
+}
+
+// ---------- Нормы: завтрак и расходники ----------
+// Завтрак: точная норма на N ночей, если она есть в КАНОНЕ; иначе норма на 1 ночь × N.
+function breakfastSet(b) {
+  var r = (DATA.rules.breakfast || {})[b.house] || {};
+  var n = nightsOf(b);
+  var exact = (r.exact || {})[String(n)];
+  var items = exact
+    ? exact.map(function (it) { return { n: it.n, q: it.q, u: it.u, adj: it.adj, alt: it.alt, pack: it.pack }; })
+    : (r.per_night || []).map(function (it) { return { n: it.n, q: it.q * n, u: it.u, adj: it.adj, alt: n === 1 ? it.alt : null, pack: it.pack }; });
+  var lead = exact ? "Набор на " + nightsWord(n) + " по норме КАНОНА." : (n === 1 ? "Продукты для завтрака на 1 ночь." : "Набор на " + nightsWord(n) + ": норма на 1 ночь × " + n + ".");
+  return { items: items, lead: lead, key: String(n), nights: n };
+}
+function itemText(it) { return it.n + " " + unitText(it.q, it.u, it.adj) + (it.alt ? " (" + it.alt + ")" : ""); }
+function upcoming() { return DATA.bookings.filter(function (b) { var d = dOf(b.inAt); return d >= TODAY && d <= LAST && houseOf(b.house); }); }
+// Итого по всем броням на 14 дней, оба дома вместе. Упаковки (pack) округляются вверх.
+function totals() {
+  var bf = {}, sup = {}, stays = 0, nights = 0;
+  function add(acc, it) {
+    var k = it.n + "|" + it.u + "|" + (it.adj || "");
+    if (!acc[k]) acc[k] = { key: k, n: it.n, u: it.u, adj: it.adj, pack: it.pack, q: 0 };
+    acc[k].q += it.q;
+  }
+  upcoming().forEach(function (b) {
+    stays++; nights += nightsOf(b);
+    breakfastSet(b).items.forEach(function (it) { add(bf, it); });
+    (((DATA.rules.supplies || {}).perStay || {})[b.house] || []).forEach(function (it) { add(sup, it); });
+  });
+  function rows(acc) {
+    return Object.keys(acc).map(function (k) {
+      var it = acc[k];
+      if (it.pack) return { key: it.key, name: it.n, need: Math.ceil(it.q / it.pack), unit: "шт", note: "упаковка " + it.pack + " " + it.u + ", всего " + unitText(it.q, it.u) };
+      if (it.u === "пакет") return { key: it.key, name: it.n + (it.adj ? ", " + it.adj + " пакет" : ""), need: it.q, unit: "шт", note: null };
+      return { key: it.key, name: it.n, need: it.q, unit: it.u, note: null, adj: it.adj };
+    });
+  }
+  return { breakfast: rows(bf), supplies: rows(sup), stays: stays, nights: nights };
+}
+
+// ---------- Закупка: итого + заявка ----------
+function reqGet(key) { try { return JSON.parse(store("zz:req:" + key) || "null"); } catch (e) { return null; } }
+function reqSet(key, val) { store("zz:req:" + key, val ? JSON.stringify(val) : null); }
+var REQ_ROWS = [];  // все строки закупки на странице: {key, name, need, unit, section}
+function buyQty(row) {
+  var s = reqGet(row.key); if (!s) return 0;
+  if (row.variants) return (s.lines || []).reduce(function (a, l) { return a + (l.v && +l.q > 0 ? +l.q : 0); }, 0);
+  if (row.need != null) { if (s.stock === "" || s.stock == null) return 0; return Math.max(0, row.need - (+s.stock || 0)); }
+  return +s.qty || 0;
+}
+function requestItems() {
+  var items = [];
+  REQ_ROWS.forEach(function (r) {
+    var s = reqGet(r.key); if (!s) return;
+    var comment = (s.comment || "").trim();
+    if (r.variants) {
+      (s.lines || []).forEach(function (l) { if (l.v && +l.q > 0) items.push({ n: r.name + ", " + l.v, qty: +l.q, u: r.unit || "шт", comment: comment, section: r.section }); });
+      return;
+    }
+    var q = buyQty(r);
+    if (q > 0) items.push({ n: r.name, qty: q, u: r.unit || "шт", comment: comment, section: r.section });
+  });
+  return items;
+}
+function requestText(items, who) {
+  var lines = ["Заявка на закупку · " + fmt(TODAY)];
+  items.forEach(function (it) { lines.push("• " + it.n + " — " + unitText(it.qty, it.u) + (it.comment ? " (" + it.comment + ")" : "")); });
+  lines.push("Заполнил(а): " + who);
+  return lines.join("\n");
+}
+function renderBuy() {
+  var box = document.getElementById("buy");
+  box.textContent = "";
+  var T = totals(), S = DATA.rules.supplies || {};
+  REQ_ROWS = [];
+  box.appendChild(el("h2", "sec", "Закупка на ближайшие заезды"));
+  box.appendChild(el("p", "sub", "Заезды с " + fmt(TODAY) + " по " + fmt(LAST) + ": " + T.stays + " " + plural(T.stays, ["заезд", "заезда", "заездов"]) + ", " + nightsWord(T.nights) + ". Итого по обоим домам."));
+
+  // Сводка заявки
+  var sum = el("div", "reqsum");
+  sum.appendChild(el("div", "rtitle", "Докупить"));
+  var rl = el("div", "rlist"); sum.appendChild(rl);
+  var brow = el("div", "btnrow");
+  var live = canTryDb();
+  var hint = el("span", "hint", "");
+  var fb = document.createElement("textarea"); fb.className = "fallback"; fb.id = "q-fallback"; fb.readOnly = true; fb.hidden = true;
+  var clear = el("button", "btn secondary", "Очистить"); clear.type = "button"; clear.id = "q-clear";
+  // Текст заявки для WhatsApp / буфера: null, если заявка пуста или имя не введено.
+  function buildText() {
+    var items = requestItems();
+    if (!items.length) { hint.className = "hint err"; hint.textContent = "Заявка пуста."; return null; }
+    var who = whoAmI(); if (!who) { openGate(); return null; }
+    return requestText(items, who);
+  }
+  var send;
+  if (live) {
+    send = el("button", "btn", "Отправить заявку"); send.type = "button"; send.id = "q-send";
+    brow.appendChild(send); brow.appendChild(clear); brow.appendChild(hint);
+  } else {
+    send = waButton("q-send", buildText, null, hint, null);
+    brow.appendChild(send); brow.appendChild(copyButton("q-copy", buildText, hint, fb)); brow.appendChild(clear); brow.appendChild(hint);
+  }
+  sum.appendChild(brow);
+  sum.appendChild(fb);
+  box.appendChild(sum);
+  function refreshSum() {
+    refreshCounts();
+    var items = requestItems();
+    rl.textContent = "";
+    if (!items.length) { rl.appendChild(el("span", "hint", "Заявка пуста. Нажми «Заявка» в нужной строке и впиши, сколько в наличии или сколько нужно.")); return; }
+    items.forEach(function (it, i) {
+      if (i) rl.appendChild(document.createTextNode(" · "));
+      rl.appendChild(document.createTextNode(it.n + " "));
+      rl.appendChild(el("b", null, unitText(it.qty, it.u)));
+      if (it.comment) rl.appendChild(document.createTextNode(" (" + it.comment + ")"));
+    });
+  }
+  if (live) send.addEventListener("click", function () {
+    hint.className = "hint";
+    var items = requestItems();
+    if (!items.length) { hint.className = "hint err"; hint.textContent = "Заявка пуста."; return; }
+    var who = whoAmI(); if (!who) { openGate(); return; }
+    var now = almatyNow();
+    var body = { items: items, text: requestText(items, who), by: who, at: now, day: now.slice(0, 10), seen: false, notified: false };
+    send.disabled = true; hint.textContent = "Отправляю…";
+    submitRequest(body).then(function (how) {
+      send.disabled = false;
+      if (how === "db") { REQ_ROWS.forEach(function (r) { reqSet(r.key, null); }); toast("Заявка отправлена. Сергей увидит её."); renderBuy(); return; }
+      if (how === "copied") { hint.textContent = "Скопировано. Вставь в чат."; toast("Заявка скопирована"); return; }
+      if (how === "manual") { fb.hidden = false; fb.value = body.text; fb.focus(); fb.select(); hint.textContent = "Выдели текст ниже и скопируй его в чат."; return; }
+      hint.className = "hint err"; hint.textContent = how;
+    });
+  });
+  clear.addEventListener("click", function () { REQ_ROWS.forEach(function (r) { reqSet(r.key, null); }); renderBuy(); });
+
+  // Раздел закупки — собранный блок, как в карточке брони; справа счётчик строк в заявке.
+  var SECT_CNT = {};
+  function fold(title, sub, section) {
+    var d = el("div", "blk buyfold");
+    var head = el("button", "blkhead"); head.type = "button"; head.id = "bf-" + section; head.setAttribute("aria-expanded", "false");
+    head.appendChild(chev()); head.appendChild(el("span", "ttl", title));
+    var cnt = el("span", "cnt"); head.appendChild(cnt); SECT_CNT[section] = cnt;
+    var body = el("div", "blkbody"); body.hidden = true;
+    if (sub) body.appendChild(el("p", "hint", sub));
+    head.addEventListener("click", function () { var open = body.hidden; body.hidden = !open; head.setAttribute("aria-expanded", String(open)); });
+    d.appendChild(head); d.appendChild(body); box.appendChild(d);
+    return body;
+  }
+  function refreshCounts() {
+    Object.keys(SECT_CNT).forEach(function (sec) {
+      var n = REQ_ROWS.filter(function (r) { return r.section === sec && buyQty(r) > 0; }).length;
+      SECT_CNT[sec].textContent = n ? n + " в заявке" : "";
+      SECT_CNT[sec].className = "cnt" + (n ? " done" : "");
+    });
+  }
+  function table(title, rows, section, sub) {
+    var body = fold(title, sub, section);
+    var t = el("div", "rtable");
+    if (!rows.length) { t.appendChild(el("p", "empty", "Нет заездов, считать нечего.")); body.appendChild(t); return; }
+    rows.forEach(function (r) {
+      r.section = section;
+      REQ_ROWS.push(r);
+      var saved = reqGet(r.key) || {};
+      var row = el("div", "rrow" + (buyQty(r) > 0 ? " on" : ""));
+      var rn = el("div", "rn", r.name);
+      if (r.note) rn.appendChild(el("small", null, r.note));
+      else if (r.hint && r.need == null) rn.appendChild(el("small", null, r.hint));
+      row.appendChild(rn);
+      var rq = el("div", "rq", r.need != null ? unitText(r.need, r.unit, r.adj) : "—");
+      row.appendChild(rq);
+      var btn = el("button", "btn secondary sm" + (buyQty(r) > 0 ? " on" : ""), "Заявка"); btn.type = "button"; btn.id = "q-" + r.key.replace(/[^A-Za-z0-9]/g, "_");
+      row.appendChild(btn);
+      var panel = el("div", "rpanel"); panel.hidden = !(saved.stock != null || saved.qty != null || saved.comment || (saved.lines && saved.lines.length));
+      var buyq = el("span", "buyq zero", "");
+      var num = null, linesBox = null;
+      var cm = document.createElement("input"); cm.type = "text"; cm.className = "field"; cm.id = btn.id + "-c"; cm.placeholder = r.hint ? "Комментарий: " + r.hint : "Комментарий (какие, куда)"; cm.value = saved.comment || "";
+      function state() { return reqGet(r.key) || {}; }
+      function after() {
+        var q = buyQty(r);
+        buyq.textContent = unitText(q, r.unit || "шт"); buyq.className = "buyq" + (q > 0 ? "" : " zero");
+        row.className = "rrow" + (q > 0 ? " on" : ""); btn.className = "btn secondary sm" + (q > 0 ? " on" : "");
+        refreshSum();
+      }
+      function commit(s) {
+        var empty = (s.stock == null) && (s.qty == null) && !s.comment && !(s.lines && s.lines.some(function (l) { return l.v || l.q; }));
+        reqSet(r.key, empty ? null : s); after();
+      }
+      if (r.variants) {
+        // Разновидности: несколько строк «вид + сколько», кнопка «+ ещё».
+        linesBox = el("div", "pgrp");
+        function renderLines() {
+          linesBox.textContent = "";
+          var s = state(); var lines = (s.lines && s.lines.length) ? s.lines : [{ v: "", q: "" }];
+          lines.forEach(function (l, i) {
+            var ln = el("div", "rline");
+            var sel = document.createElement("select"); sel.className = "field sel"; sel.id = btn.id + "-v" + i;
+            var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Выбери вид"; sel.appendChild(o0);
+            r.variants.forEach(function (v) { var o = document.createElement("option"); o.value = v; o.textContent = v; if (v === l.v) o.selected = true; sel.appendChild(o); });
+            var qn = document.createElement("input"); qn.type = "number"; qn.min = "0"; qn.inputMode = "numeric"; qn.className = "field num"; qn.id = btn.id + "-q" + i; qn.value = l.q || ""; qn.placeholder = "сколько";
+            var del = el("button", "tx-inline", "✕"); del.type = "button"; del.title = "Убрать строку";
+            sel.addEventListener("change", function () { var st = state(); st.lines = lines; lines[i].v = sel.value; commit(st); });
+            qn.addEventListener("input", function () { var st = state(); st.lines = lines; lines[i].q = qn.value; commit(st); });
+            del.addEventListener("click", function () { var st = state(); lines.splice(i, 1); st.lines = lines; commit(st); renderLines(); });
+            ln.appendChild(sel); ln.appendChild(qn); ln.appendChild(el("span", "hint", r.unit || "шт")); if (lines.length > 1) ln.appendChild(del);
+            linesBox.appendChild(ln);
+          });
+          var add = el("button", "btn secondary sm", "+ ещё вид"); add.type = "button"; add.id = btn.id + "-add";
+          add.addEventListener("click", function () { var st = state(); st.lines = lines.concat([{ v: "", q: "" }]); reqSet(r.key, st); renderLines(); });
+          linesBox.appendChild(add);
+        }
+        renderLines();
+        panel.appendChild(linesBox);
+      } else {
+        var line = el("div", "rline");
+        num = document.createElement("input"); num.type = "number"; num.min = "0"; num.inputMode = "numeric"; num.className = "field num"; num.id = btn.id + "-n";
+        if (r.need != null) {
+          line.appendChild(el("span", null, "В наличии"));
+          num.value = saved.stock != null ? saved.stock : "";
+          line.appendChild(num);
+          line.appendChild(el("span", null, "→ докупить"));
+          line.appendChild(buyq);
+        } else {
+          line.appendChild(el("span", null, "Сколько"));
+          num.value = saved.qty != null ? saved.qty : "";
+          line.appendChild(num);
+          line.appendChild(el("span", "hint", r.unit || "шт"));
+        }
+        num.addEventListener("input", function () { var s = state(); if (r.need != null) s.stock = num.value === "" ? null : num.value; else s.qty = num.value === "" ? null : num.value; commit(s); });
+        panel.appendChild(line);
+      }
+      cm.addEventListener("input", function () { var s = state(); s.comment = cm.value; commit(s); });
+      panel.appendChild(cm);
+      row.appendChild(panel);
+      btn.addEventListener("click", function () { panel.hidden = !panel.hidden; if (!panel.hidden && num) num.focus(); });
+      after();
+      t.appendChild(row);
+    });
+    body.appendChild(t);
+  }
+  table("Welcome-пакет · итого по броням", T.breakfast, "welcome", "Норма на ночь × ночи по каждой брони, сложено по обоим домам.");
+  table("Расходники · набор на заезд × заезды", T.supplies, "supplies", (S.rule || "").replace(/ Источник.*$/, ""));
+  table("Дом и инвентарь", (S.house || []).map(function (it, i) { return { key: "house|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "house", "Без расчёта: выбери вид, впиши, сколько нужно, уточни в комментарии.");
+  table("Для уборки", (S.cleaning || []).map(function (it, i) { return { key: "clean|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "cleaning", null);
+  refreshSum();
+}
+function submitRequest(body) {
+  var p = Promise.resolve();
+  if (canTryDb()) {
+    p = p.then(function () { return MODE.db.collection("requests").add(body).then(function () { return "db"; }); })
+      .catch(function (e) {
+        var code = e && e.code;
+        if (code === "invalid_argument") { MODE.writeRefused = true; return null; }
+        if (code === "quota_exceeded") return "База переполнена. Отправь заявку в чат.";
+        return "Не отправилось (" + (code || "ошибка") + "). Попробуй ещё раз или скопируй текст.";
+      });
+  } else p = p.then(function () { return null; });
+  return p.then(function (res) {
+    if (res) return res;
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(body.text).then(function () { return "copied"; }, function () { return "manual"; });
+    return "manual";
+  });
+}
+
+// ---------- Задания по дому: Сергей или Олеся увидели проблему → задание сотруднику с фото ----------
+function taskText(t) { return "Задание · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
+function renderTasks() {
+  var box = document.getElementById("tasks");
+  box.textContent = "";
+  var live = !!MODE.db;
+  var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []);
+  box.appendChild(el("h2", "sec", "Задания по дому"));
+  if (!open.length) box.appendChild(el("p", "hint", "Открытых заданий нет."));
+  open.forEach(function (t) {
+    var c = el("div", "task");
+    c.style.setProperty("--hc", "var(--h-" + t.house + ")");
+    var r1 = el("div", "row1");
+    r1.appendChild(el("span", "kind", houseOf(t.house).name + " · " + fmtDT(t.at || "")));
+    r1.appendChild(el("span", "pill warn", "Сделать"));
+    c.appendChild(r1);
+    c.appendChild(el("div", "ttxt", t.text || ""));
+    c.appendChild(el("div", "meta", "От: " + (t.by || "—")));
+    var row = el("div", "btnrow");
+    var pb = (live && t.photos > 0) ? photoButton("tasks", t) : null;
+    if (pb) row.appendChild(pb);
+    if (live && canTryDb()) {
+      var done = el("button", "btn sm", "Сделано"); done.type = "button"; done.id = "task-done-" + t.id;
+      done.addEventListener("click", function () {
+        var who = store("zz:name") || "";
+        done.disabled = true;
+        MODE.db.doc("tasks/" + t.id).update({ done: true, doneBy: who, doneAt: almatyNow(), notified: false }).then(function () { toast("Отмечено: сделано"); }, function () { done.disabled = false; toast("Не сохранилось, попробуй ещё раз"); });
+      });
+      row.appendChild(done);
+    } else if (!live) {
+      var th = el("span", "hint", t.photos > 0 ? "Фото к заданию — в чате «" + STAFF_CHAT + "»." : "");
+      var doneWa = waButton("task-done-" + (t.id || ""), function () {
+        var who = whoAmI(); if (!who) { openGate(); return null; }
+        return "✅ Сделано · " + houseOf(t.house).name + "\n" + (t.text || "") + "\n" + who + ", " + fmtDT(almatyNow());
+      }, null, th, null);
+      doneWa.textContent = "Сделано → WhatsApp"; doneWa.className = "btn sm";
+      row.appendChild(doneWa); row.appendChild(th);
+    }
+    c.appendChild(row);
+    if (pb) c.appendChild(pb.grid);
+    box.appendChild(c);
+  });
+  if (canTryDb()) {
+    var f = el("div", "tform form");
+    f.appendChild(el("div", "grp", "Требует внимания"));
+    var hsel = document.createElement("select"); hsel.className = "field"; hsel.id = "t-house";
+    DATA.houses.forEach(function (h) { var o = document.createElement("option"); o.value = h.id; o.textContent = h.name; hsel.appendChild(o); });
+    f.appendChild(hsel);
+    var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text"; txt.placeholder = "Что сделать: например, помыть казан, протереть полы на кухне";
+    f.appendChild(txt);
+    var st = { photos: [] };
+    f.appendChild(photoPicker("task", st, function () {}));
+    var row2 = el("div", "btnrow");
+    var send = el("button", "btn", "Создать задание"); send.type = "button"; send.id = "t-send";
+    var hint = el("span", "hint", "");
+    row2.appendChild(send); row2.appendChild(hint); f.appendChild(row2);
+    send.addEventListener("click", function () {
+      hint.className = "hint";
+      var text = txt.value.trim(); if (!text) { hint.className = "hint err"; hint.textContent = "Напиши, что сделать."; return; }
+      var who = whoAmI(); if (!who) { openGate(); return; }
+      var now = almatyNow();
+      var body = { house: hsel.value, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
+      send.disabled = true; hint.textContent = "Создаю…";
+      submitDoc("tasks", body, st.photos, taskText(body)).then(function (how) {
+        send.disabled = false;
+        if (how === "db") { toast("Задание создано"); txt.value = ""; st.photos = []; return; }
+        hint.className = "hint err"; hint.textContent = how === "copied" || how === "manual" ? "Нет доступа к базе: текст скопирован, отправь в чат." : how;
+      });
+    });
+    box.appendChild(f);
+  }
+}
+
+// ---------- Чек-листы (отметки хранятся только на этом телефоне) ----------
+function checklist(bid, sec, items, onChange) {
+  var box = el("div");
+  items.forEach(function (text, i) {
+    var label = el("label", "check");
+    var cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.id = "c-" + sec + "-" + i;
+    var key = "zz:" + bid + ":" + sec + ":" + i;
+    cb.checked = store(key) === "1";
+    cb.addEventListener("change", function () { store(key, cb.checked ? "1" : "0"); if (onChange) onChange(); });
+    label.appendChild(cb); label.appendChild(el("span", null, text));
+    box.appendChild(label);
+  });
+  return box;
+}
+// Стрелка-шеврон: вниз = можно открыть, вверх (поворот) = собрать.
+function chev() {
+  var ns = "http://www.w3.org/2000/svg";
+  var sv = document.createElementNS(ns, "svg"); sv.setAttribute("viewBox", "0 0 16 16"); sv.setAttribute("class", "arr"); sv.setAttribute("aria-hidden", "true");
+  var pa = document.createElementNS(ns, "path"); pa.setAttribute("d", "M3 6l5 5 5-5"); pa.setAttribute("fill", "none"); pa.setAttribute("stroke", "currentColor"); pa.setAttribute("stroke-width", "2"); pa.setAttribute("stroke-linecap", "round"); pa.setAttribute("stroke-linejoin", "round");
+  sv.appendChild(pa); return sv;
+}
+// Раскрывающийся блок: кнопка-заголовок, тело скрыто до клика.
+function block(title, lead, bid, sec, items, extra) {
+  var d = el("div", "blk");
+  var head = el("button", "blkhead"); head.type = "button"; head.id = "bh-" + sec; head.setAttribute("aria-expanded", "false");
+  head.appendChild(chev());
+  head.appendChild(el("span", "ttl", title));
+  var cnt = el("span", "cnt");
+  head.appendChild(cnt);
+  d.appendChild(head);
+  var body = el("div", "blkbody"); body.hidden = true;
+  if (lead) body.appendChild(el("p", "lead" + (lead.warn ? " warn" : ""), lead.text || lead));
+  function refresh() {
+    if (!items || !items.length) { cnt.textContent = ""; return; }
+    var done = 0;
+    items.forEach(function (_, i) { if (store("zz:" + bid + ":" + sec + ":" + i) === "1") done++; });
+    cnt.textContent = done + "/" + items.length;
+    cnt.className = "cnt" + (done === items.length ? " done" : "");
+  }
+  if (items && items.length) {
+    var list = checklist(bid, sec, items, refresh);
+    body.appendChild(list);
+    var row = el("div", "btnrow");
+    var all = el("button", "btn secondary sm"); all.type = "button"; all.id = "all-" + sec;
+    function allDone() { return items.every(function (_, i) { return store("zz:" + bid + ":" + sec + ":" + i) === "1"; }); }
+    function label() { all.textContent = allDone() ? "Снять все" : "Отметить все"; }
+    all.addEventListener("click", function () {
+      var on = !allDone();
+      Array.prototype.forEach.call(list.querySelectorAll("input[type=checkbox]"), function (cb, i) { cb.checked = on; store("zz:" + bid + ":" + sec + ":" + i, on ? "1" : "0"); });
+      refresh(); label();
+    });
+    list.addEventListener("change", label);
+    row.appendChild(all);
+    body.appendChild(row);
+    label();
+  }
+  if (extra) body.appendChild(extra);
+  d.appendChild(body);
+  head.addEventListener("click", function () {
+    var open = body.hidden;
+    body.hidden = !open;
+    head.setAttribute("aria-expanded", String(open));
+  });
+  refresh();
+  return d;
+}
+
+// ---------- Отчёт сотрудника ----------
+function shrink(file) {
+  return new Promise(function (res) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+      var max = 900, w = img.naturalWidth, h = img.naturalHeight;
+      var s = Math.min(1, max / Math.max(w, h));
+      w = Math.round(w * s); h = Math.round(h * s);
+      var c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      var q = 0.62, d = c.toDataURL("image/jpeg", q);
+      while (d.length > 180000 && q > 0.3) { q -= 0.1; d = c.toDataURL("image/jpeg", q); }
+      URL.revokeObjectURL(url);
+      res({ dataUrl: d, w: w, h: h });
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); res(null); };
+    img.src = url;
+  });
+}
+function reportText(r) {
+  var h = houseOf(r.house);
+  var lines = [
+    (r.kind === "checkout" ? "Выезд" : "Заезд") + " · " + h.name + " · " + r.guest + " · " + fmt(r.day),
+    "Статус: " + (STATUS[r.status] ? STATUS[r.status].t : r.status)
+  ];
+  if (r.note) lines.push("Замечания: " + r.note);
+  if (r.lost) lines.push("Забытые вещи: " + r.lost);
+  if (r.photos) lines.push("Фото: " + r.photos + " (прикладываю в чат)");
+  lines.push("Заполнил(а): " + r.by + ", " + tOf(r.at));
+  return lines.join("\n");
+}
+// Черновик отчёта хранится на телефоне, пока отчёт не отправлен: фото не пропадут, если закрыть карточку.
+function draftKey(b) { return "zz:draft:" + b.id; }
+function loadDraft(b) { try { return JSON.parse(store(draftKey(b)) || "null") || {}; } catch (e) { return {}; } }
+function saveDraft(b, d) { try { localStorage.setItem(draftKey(b), JSON.stringify(d)); } catch (e) { toast("Память телефона заполнена: фото не сохранится в черновик"); } }
+var PHOTO_TAGS = { lost: "Забытые вещи", damage: "Ущерб", event: "Гости", task: "Задание" };
+// Кнопки «Сфотографировать» (открывает камеру) и «Из галереи». До 3 фото в разделе.
+function photoPicker(tag, state, persist) {
+  var wrap = el("div", "pgrp");
+  var cam = document.createElement("input"); cam.type = "file"; cam.accept = "image/*"; cam.setAttribute("capture", "environment"); cam.hidden = true; cam.id = "cam-" + tag;
+  var gal = document.createElement("input"); gal.type = "file"; gal.accept = "image/*"; gal.multiple = true; gal.hidden = true; gal.id = "gal-" + tag;
+  var row = el("div", "btnrow");
+  var bCam = el("button", "btn secondary sm", "📷 Сфотографировать"); bCam.type = "button"; bCam.id = "bcam-" + tag;
+  var bGal = el("button", "btn secondary sm", "Из галереи"); bGal.type = "button"; bGal.id = "bgal-" + tag;
+  var cnt = el("span", "hint", "");
+  row.appendChild(bCam); row.appendChild(bGal); row.appendChild(cnt);
+  if (IS_WEBVIEW) { var wv = el("p", "hint err", "Внутри приложения Claude камера и галерея не открываются — открой эту страницу в Chrome."); wv.style.margin = "0"; wrap.appendChild(wv); }
+  var thumbs = el("div", "thumbs");
+  wrap.appendChild(cam); wrap.appendChild(gal); wrap.appendChild(row); wrap.appendChild(thumbs);
+  function mine() { return state.photos.filter(function (p) { return p.tag === tag; }); }
+  function render() {
+    thumbs.textContent = "";
+    mine().forEach(function (p) {
+      var t = el("div", "thumb");
+      var im = document.createElement("img"); im.src = p.dataUrl; im.alt = PHOTO_TAGS[tag];
+      var x = el("button", "tx", "✕"); x.type = "button"; x.title = "Убрать фото";
+      x.addEventListener("click", function () { state.photos.splice(state.photos.indexOf(p), 1); persist(); render(); });
+      t.appendChild(im); t.appendChild(x); thumbs.appendChild(t);
+    });
+    var n = mine().length;
+    cnt.textContent = n ? n + " из 3" : "до 3 фото";
+    bCam.disabled = bGal.disabled = n >= 3;
+  }
+  function handle(files) {
+    var free = 3 - mine().length;
+    if (free <= 0) { toast("Не больше 3 фото в разделе"); return; }
+    files.slice(0, free).forEach(function (f) {
+      shrink(f).then(function (p) {
+        if (!p) { toast("Не удалось прочитать фото"); return; }
+        p.tag = tag; state.photos.push(p); persist(); render();
+      });
+    });
+  }
+  cam.addEventListener("change", function () { handle(Array.prototype.slice.call(cam.files || [])); cam.value = ""; });
+  gal.addEventListener("change", function () { handle(Array.prototype.slice.call(gal.files || [])); gal.value = ""; });
+  bCam.addEventListener("click", function () { cam.click(); });
+  bGal.addEventListener("click", function () { gal.click(); });
+  render();
+  return wrap;
+}
+function reportForm(b) {
+  var form = el("div", "form");
+  form.appendChild(el("p", "lead", canTryDb() ? "Отметь, что произошло. Фото делаются прямо здесь. Сергей увидит отчёт." : "Отметь, что произошло. Фото делаются прямо здесь. Отчёт уйдёт в WhatsApp."));
+  var draft = loadDraft(b);
+  var state = { status: draft.status || "", photos: Array.isArray(draft.photos) ? draft.photos.filter(function (p) { return p && p.dataUrl; }) : [] };
+  var note, lost;
+  function persist() { saveDraft(b, { status: state.status, note: note ? note.value : "", lost: lost ? lost.value : "", photos: state.photos }); }
+  function radios(title, keys) {
+    form.appendChild(el("div", "grp", title));
+    keys.forEach(function (k) {
+      var l = el("label", "radio");
+      var r = document.createElement("input");
+      r.type = "radio"; r.name = "r-status"; r.id = "r-status-" + k; r.value = k; r.checked = state.status === k;
+      r.addEventListener("change", function () { state.status = k; persist(); });
+      l.appendChild(r); l.appendChild(el("span", null, STATUS[k].t));
+      form.appendChild(l);
+    });
+  }
+  radios("Перед заездом", ["ready", "notready"]);
+  radios("После выезда", ["ok", "issues", "stayed"]);
+
+  form.appendChild(el("div", "grp", "Забытые вещи"));
+  var lostL = el("label", "lbl", "Что и где лежит");
+  lost = document.createElement("input"); lost.className = "field"; lost.id = "r-lost"; lost.type = "text"; lost.value = draft.lost || "";
+  lost.addEventListener("input", persist);
+  lostL.appendChild(lost); form.appendChild(lostL);
+  form.appendChild(photoPicker("lost", state, persist));
+
+  form.appendChild(el("div", "grp", "Ущерб и замечания"));
+  var noteL = el("label", "lbl", "Что повреждено, что не так, что нужно");
+  note = document.createElement("textarea"); note.className = "field"; note.id = "r-note"; note.value = draft.note || "";
+  note.addEventListener("input", persist);
+  noteL.appendChild(note); form.appendChild(noteL);
+  form.appendChild(photoPicker("damage", state, persist));
+
+  var row = el("div", "btnrow");
+  var live = canTryDb();
+  var hint = el("span", "hint", "");
+  var fb = document.createElement("textarea"); fb.className = "fallback"; fb.id = "r-fallback"; fb.readOnly = true; fb.hidden = true;
+  // Собирает отчёт; null — если статус не выбран или имя не введено (подсказку пишет сама).
+  function build() {
+    if (!state.status) { hint.className = "hint err"; hint.textContent = "Выбери статус."; return null; }
+    var who = whoAmI(); if (!who) { openGate(); return null; }
+    var now = almatyNow();
+    return { bookingId: b.id, house: b.house, guest: b.guest, kind: STATUS[state.status].kind, status: state.status, note: note.value.trim(), lost: lost.value.trim(), by: who, at: now, day: now.slice(0, 10), photos: state.photos.length, seen: false, notified: false };
+  }
+  function buildText() { var body = build(); return body ? reportText(body) : null; }
+  var send;
+  if (live) {
+    send = el("button", "btn", "Отправить"); send.type = "button"; send.id = "r-send";
+    row.appendChild(send); row.appendChild(hint);
+  } else {
+    send = waButton("r-send", buildText, function () { return state.photos; }, hint, null);
+    var wipe = el("button", "btn secondary", "Очистить"); wipe.type = "button"; wipe.id = "r-wipe"; wipe.title = "Удалить черновик отчёта с телефона";
+    wipe.addEventListener("click", function () { store(draftKey(b), null); toast("Черновик удалён"); closeSheet(); });
+    row.appendChild(send); row.appendChild(copyButton("r-copy", buildText, hint, fb)); row.appendChild(wipe); row.appendChild(hint);
+  }
+  form.appendChild(row);
+  form.appendChild(fb);
+
+  if (live) send.addEventListener("click", function () {
+    hint.className = "hint";
+    var body = build(); if (!body) return;
+    send.disabled = true; hint.textContent = "Отправляю…";
+    submitReport(body, state.photos).then(function (how) {
+      send.disabled = false;
+      if (how === "db") { store(draftKey(b), null); toast("Отправлено. Сергей увидит отчёт."); closeSheet(); return; }
+      if (how === "copied") { hint.textContent = "Скопировано. Вставь в чат и приложи фото."; toast("Отчёт скопирован"); return; }
+      if (how === "manual") { fb.hidden = false; fb.value = reportText(body); fb.focus(); fb.select(); hint.textContent = "Выдели текст ниже и скопируй его в чат."; return; }
+      hint.className = "hint err"; hint.textContent = how;
+    });
+  });
+  return form;
+}
+function submitReport(body, photos) { return submitDoc("reports", body, photos, reportText(body)); }
+// Общая отправка: документ + фото в подколлекцию; без базы — текст в буфер обмена.
+function submitDoc(coll, body, photos, text) {
+  var p = Promise.resolve();
+  if (canTryDb()) {
+    p = p.then(function () {
+      var ref = MODE.db.collection(coll).doc();
+      return ref.set(body).then(function () {
+        var chain = Promise.resolve();
+        photos.forEach(function (ph, i) {
+          chain = chain.then(function () { return ref.collection("photos").doc("p" + (i + 1)).set({ order: i + 1, tag: ph.tag || "", dataUrl: ph.dataUrl, w: ph.w, h: ph.h }); });
+        });
+        return chain;
+      }).then(function () { return "db"; });
+    }).catch(function (e) {
+      var code = e && e.code;
+      if (code === "invalid_argument") { MODE.writeRefused = true; return null; }
+      if (code === "quota_exceeded") return "База переполнена. Сообщи Сергею, отчёт пока отправь в чат.";
+      return "Не отправилось (" + (code || "ошибка") + "). Попробуй ещё раз или скопируй текст.";
+    });
+  } else {
+    p = p.then(function () { return null; });
+  }
+  return p.then(function (res) {
+    if (res) return res;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(function () { return "copied"; }, function () { return "manual"; });
+    }
+    return "manual";
+  });
+}
+
+// ---------- Журнал по гостю: просьбы, нарушения, заметки ----------
+function eventText(e) {
+  return (EVENT_TYPES[e.type] ? EVENT_TYPES[e.type].t : "Событие") + " · " + houseOf(e.house).name + " · " + e.guest + " · " + fmtDT(e.at) + "\n" + e.text + (e.photos ? "\nФото: " + e.photos + " (прикладываю в чат)" : "") + "\nЗаписал(а): " + e.by;
+}
+function eventsFor(bid) { return EVENTS.filter(function (e) { return e.bookingId === bid; }); }
+function eventForm(b) {
+  var form = el("div", "form");
+  form.appendChild(el("p", "lead", canTryDb() ? "Запиши просьбу или нарушение сразу, пока гости в доме. Просьбы попадут в подготовку следующих заездов." : "Запиши просьбу или нарушение сразу, пока гости в доме. Сообщение уйдёт в WhatsApp."));
+  var state = { type: "request", photos: [] };
+  var chips = el("div", "chips");
+  var txtL = el("label", "lbl", "Что произошло");
+  var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "e-text"; txt.placeholder = EVENT_TYPES.request.hint;
+  txtL.appendChild(txt);
+  Object.keys(EVENT_TYPES).forEach(function (k) {
+    var c = el("button", "chip", EVENT_TYPES[k].t); c.type = "button"; c.id = "e-type-" + k;
+    c.setAttribute("aria-pressed", String(k === state.type));
+    c.addEventListener("click", function () {
+      state.type = k; txt.placeholder = EVENT_TYPES[k].hint;
+      Array.prototype.forEach.call(chips.children, function (x) { x.setAttribute("aria-pressed", String(x === c)); });
+    });
+    chips.appendChild(c);
+  });
+  form.appendChild(chips);
+  form.appendChild(txtL);
+  form.appendChild(photoPicker("event", state, function () {}));
+  var row = el("div", "btnrow");
+  var live = canTryDb();
+  var hint = el("span", "hint", "");
+  var fb = document.createElement("textarea"); fb.className = "fallback"; fb.id = "e-fallback"; fb.readOnly = true; fb.hidden = true;
+  function build() {
+    var text = txt.value.trim();
+    if (!text) { hint.className = "hint err"; hint.textContent = "Напиши, что произошло."; return null; }
+    var who = whoAmI(); if (!who) { openGate(); return null; }
+    var now = almatyNow();
+    return { bookingId: b.id, house: b.house, guest: b.guest, type: state.type, text: text, by: who, at: now, day: now.slice(0, 10), photos: state.photos.length, seen: false, notified: false };
+  }
+  function buildText() { var body = build(); return body ? eventText(body) : null; }
+  var send;
+  if (live) {
+    send = el("button", "btn", "Записать"); send.type = "button"; send.id = "e-send";
+    row.appendChild(send); row.appendChild(hint);
+  } else {
+    send = waButton("e-send", buildText, function () { return state.photos; }, hint, null);
+    row.appendChild(send); row.appendChild(copyButton("e-copy", buildText, hint, fb)); row.appendChild(hint);
+  }
+  form.appendChild(row); form.appendChild(fb);
+  if (live) send.addEventListener("click", function () {
+    hint.className = "hint";
+    var body = build(); if (!body) return;
+    send.disabled = true; hint.textContent = "Записываю…";
+    submitDoc("events", body, state.photos, eventText(body)).then(function (how) {
+      send.disabled = false;
+      if (how === "db") { toast("Записано"); txt.value = ""; state.photos = []; return; }
+      if (how === "copied") { hint.textContent = "Скопировано. Вставь в чат."; toast("Скопировано"); return; }
+      if (how === "manual") { fb.hidden = false; fb.value = eventText(body); fb.focus(); fb.select(); hint.textContent = "Выдели текст ниже и скопируй его в чат."; return; }
+      hint.className = "hint err"; hint.textContent = how;
+    });
+  });
+  var list = el("div", "evlist");
+  var evs = eventsFor(b.id);
+  if (evs.length) {
+    list.appendChild(el("div", "grp", "Уже записано по этим гостям"));
+    evs.forEach(function (e) {
+      var row2 = el("div", "ev");
+      var tp = EVENT_TYPES[e.type] || { t: "Событие", cls: "neutral" };
+      row2.appendChild(el("span", "pill " + tp.cls, tp.t));
+      var t = el("span", "evt", e.text || "");
+      t.appendChild(el("span", "evm", (e.by || "") + " · " + fmtDT(e.at || "")));
+      row2.appendChild(t);
+      list.appendChild(row2);
+    });
+  }
+  form.appendChild(list);
+  return form;
+}
+// Что просили гости в этом доме раньше (90 дней): из базы, а без неё — из data.json (агент).
+function insightsFor(house) {
+  var since = addDays(TODAY, -90);
+  var reqs = EVENTS.filter(function (e) { return e.house === house && e.type === "request" && (e.day || "") >= since; });
+  if (reqs.length) {
+    var groups = {};
+    reqs.forEach(function (e) {
+      var k = (e.text || "").trim().toLowerCase();
+      if (!groups[k]) groups[k] = { text: (e.text || "").trim(), n: 0, last: "" };
+      groups[k].n++; if ((e.day || "") > groups[k].last) groups[k].last = e.day || "";
+    });
+    return Object.keys(groups).map(function (k) { return groups[k]; }).sort(function (a, c) { return c.n - a.n || (c.last > a.last ? 1 : -1); }).slice(0, 10)
+      .map(function (g) { return g.text + (g.n > 1 ? " ×" + g.n : "") + (g.last ? " · " + fmt(g.last) : ""); });
+  }
+  return ((DATA.insights || {})[house] || []).slice(0, 10);
+}
+// Группа-фаза: заголовок на всю ширину, внутри обычные блоки.
+function phaseGroup(title, when, open, active, children) {
+  var g = el("div", "phase" + (active ? " active" : ""));
+  var head = el("button", "phasehead"); head.type = "button"; head.setAttribute("aria-expanded", String(open));
+  head.appendChild(chev());
+  head.appendChild(el("span", "ttl", title));
+  if (when) head.appendChild(el("span", "when", when));
+  var body = el("div", "phasebody"); body.hidden = !open;
+  children.forEach(function (c) { body.appendChild(c); });
+  head.addEventListener("click", function () {
+    var o = body.hidden; body.hidden = !o;
+    head.setAttribute("aria-expanded", String(o));
+  });
+  g.appendChild(head); g.appendChild(body);
+  return g;
+}
+
+// ---------- Карточка брони (нижняя шторка) ----------
+function openSheet(id, trigger) {
+  var b = byId(id); if (!b) return;
+  var h = houseOf(b.house);
+  var R = DATA.rules || {};
+  lastFocus = trigger;
+  var sh = document.getElementById("sheet");
+  sh.textContent = "";
+
+  var head = el("div", "shead");
+  var tw = el("div");
+  var t = el("h2", "stitle", b.guest); t.id = "stitle";
+  tw.appendChild(t);
+  var hs = el("div", "shouse");
+  var dot = el("i", "dot"); dot.style.setProperty("--hc", "var(--h-" + h.id + ")");
+  hs.appendChild(dot); hs.appendChild(document.createTextNode(h.name));
+  tw.appendChild(hs);
+  var x = el("button", "close", "Закрыть"); x.type = "button";
+  x.addEventListener("click", closeSheet);
+  head.appendChild(tw); head.appendChild(x);
+  sh.appendChild(head);
+
+  var f = el("dl", "facts");
+  var facts = [["Заезд", wd(dOf(b.inAt)) + " " + fmtDT(b.inAt)], ["Выезд", wd(dOf(b.outAt)) + " " + fmtDT(b.outAt)], ["Срок", nightsWord(nightsOf(b))]];
+  if (b.tag) facts.push(["Метка", b.tag]);
+  facts.forEach(function (p) { f.appendChild(el("dt", null, p[0])); f.appendChild(el("dd", null, p[1])); });
+  sh.appendChild(f);
+
+  if (b.notes && b.notes.length) {
+    var nb = el("div", "note");
+    nb.textContent = "Из календаря:\n" + b.notes.join("\n");
+    sh.appendChild(nb);
+  }
+
+  var pills = el("div", "pills");
+  ["checkin", "checkout"].forEach(function (k) {
+    var r = latestReport(b.id, k);
+    if (r && STATUS[r.status]) pills.appendChild(el("span", "pill " + STATUS[r.status].cls, STATUS[r.status].t + " · " + (r.by || "") + " " + fmtDT(r.at || "")));
+  });
+  if (pills.children.length) sh.appendChild(pills);
+
+  // Фаза: до конца дня заезда — «До заезда»; потом — «Гости в доме и выезд».
+  var before = TODAY <= dOf(b.inAt), left = TODAY > dOf(b.outAt);
+  var phasePill = el("div", "pills");
+  phasePill.appendChild(el("span", "pill " + (before ? "ok" : left ? "neutral" : "warn"), before ? "До заезда" : left ? "Гости выехали" : "Гости в доме"));
+  sh.appendChild(phasePill);
+
+  var bf = breakfastSet(b);
+  var prep = [];
+  var ins = insightsFor(b.house);
+  if (ins.length) {
+    var ul = el("ul", "plain");
+    ins.forEach(function (s) { ul.appendChild(el("li", null, s)); });
+    prep.push(block("Что просили гости раньше", "Просьбы прошлых гостей этого дома за 90 дней. Положи заранее.", b.id, "ins", null, ul));
+  }
+  prep.push(block("Welcome-пакет", bf.lead, b.id, "wel" + bf.key, bf.items.map(itemText)));
+  prep.push(block("Готовность дома", null, b.id, "house", (R.house || {})[b.house] || []));
+  var bn = (R.banya || {})[b.house] || { title: "Готовность бани", items: [] };
+  prep.push(block(bn.title || "Готовность бани", bn.lead || null, b.id, "banya", bn.items || []));
+  prep.push(block("Готовность барбекю-зоны", null, b.id, "bbq", (R.bbq || {})[b.house] || []));
+
+  var cl = cleaningFor(b), C = R.cleaning || {};
+  var cleanLead = cl.type === "express"
+    ? "Экспресс: выезд в " + tOf(b.outAt) + ", следующий заезд в " + cl.until + " (" + cl.next.guest + "). Успеваем основное."
+    : (cl.next ? "Обычная: следующий заезд " + fmt(dOf(cl.next.inAt)) + ". Время есть, делаем с труднодоступными местами." : "Обычная: ближайших заездов нет. Делаем с труднодоступными местами.");
+  var stay = [
+    block("Просьбы и поведение гостей", null, b.id, "events", null, eventForm(b)),
+    block(cl.type === "express" ? "Уборка после выезда: экспресс" : "Уборка после выезда: обычная", cleanLead, b.id, "clean-" + cl.type, cl.type === "express" ? (C.express || []) : (C.regular || [])),
+    block("Отчёт о выезде: вещи, ущерб", null, b.id, "report", null, reportForm(b))
+  ];
+  var blocks = el("div", "blocks");
+  blocks.appendChild(phaseGroup("Подготовка к заезду", "до " + fmt(dOf(b.inAt)) + " " + tOf(b.inAt), before, before, prep));
+  blocks.appendChild(phaseGroup("Гости в доме и выезд", "выезд " + fmt(dOf(b.outAt)) + " " + tOf(b.outAt), !before, !before, stay));
+  sh.appendChild(blocks);
+
+  sh.appendChild(el("p", "foot", "Галочки сохраняются только на этом телефоне. Нормы: " + (R.source || "КАНОН HYGGE") + "."));
+
+  document.getElementById("overlay").hidden = false;
+  sh.hidden = false;
+  sh.scrollTop = 0;
+  x.focus();
+}
+function closeSheet() {
+  document.getElementById("sheet").hidden = true;
+  document.getElementById("overlay").hidden = true;
+  if (lastFocus) try { lastFocus.focus(); } catch (e) {}
+}
+document.getElementById("overlay").addEventListener("click", closeSheet);
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("sheet").hidden) closeSheet(); });
+
+// ---------- Вкладка «Отчёты» (видна вошедшим в claude.ai) ----------
+function showTab(name) {
+  document.getElementById("tab-schedule").setAttribute("aria-selected", String(name === "schedule"));
+  document.getElementById("tab-reports").setAttribute("aria-selected", String(name === "reports"));
+  document.getElementById("view-schedule").hidden = name !== "schedule";
+  document.getElementById("view-reports").hidden = name !== "reports";
+}
+document.getElementById("tab-schedule").addEventListener("click", function () { showTab("schedule"); });
+document.getElementById("tab-reports").addEventListener("click", function () { showTab("reports"); });
+function updateBadge() {
+  var n = REPORTS.filter(function (r) { return !r.seen; }).length + REQUESTS.filter(function (r) { return !r.seen; }).length + EVENTS.filter(function (r) { return !r.seen; }).length;
+  var bd = document.getElementById("rbadge");
+  bd.hidden = !n; bd.textContent = String(n);
+}
+function acceptBtn(coll, r, row) {
+  if (!MODE.isOwner || r.seen) return;
+  var ok = el("button", "btn secondary", "Принято"); ok.type = "button";
+  ok.addEventListener("click", function () {
+    ok.disabled = true;
+    MODE.db.doc(coll + "/" + r.id).update({ seen: true }).then(null, function () { ok.disabled = false; toast("Не сохранилось, попробуй ещё раз"); });
+  });
+  row.appendChild(ok);
+}
+function renderReports() {
+  var box = document.getElementById("reports");
+  box.textContent = "";
+  var all = REPORTS.map(function (r) { return { t: "report", at: r.at || "", r: r }; })
+    .concat(REQUESTS.map(function (r) { return { t: "request", at: r.at || "", r: r }; }))
+    .concat(EVENTS.map(function (r) { return { t: "event", at: r.at || "", r: r }; }))
+    .concat(TASKS.filter(function (r) { return r.done; }).map(function (r) { return { t: "task", at: r.doneAt || r.at || "", r: r }; }))
+    .sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
+  if (!all.length) { box.appendChild(el("p", "empty", "Пока пусто. Здесь появятся отчёты о выездах, просьбы гостей и заявки на закупку.")); return; }
+  all.forEach(function (x) {
+    var r = x.r;
+    var c = el("div", "report" + (r.seen ? " seen" : ""));
+    var r1 = el("div", "row1");
+    if (x.t === "task") {
+      r1.appendChild(el("span", "kind", "Задание · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
+      r1.appendChild(el("span", "pill ok", "Выполнено"));
+      c.appendChild(r1);
+      c.appendChild(el("div", "txt", r.text || ""));
+      c.appendChild(el("div", "meta", "Сделал(а): " + (r.doneBy || "—") + " · " + fmtDT(r.doneAt || "") + " · задание от " + (r.by || "—")));
+      var row4 = el("div", "btnrow");
+      var pbt = r.photos > 0 ? photoButton("tasks", r) : null;
+      if (pbt) row4.appendChild(pbt);
+      acceptBtn("tasks", r, row4); c.appendChild(row4);
+      if (pbt) c.appendChild(pbt.grid);
+      box.appendChild(c);
+      return;
+    }
+    if (x.t === "event") {
+      var tp = EVENT_TYPES[r.type] || { t: "Событие", cls: "neutral" };
+      r1.appendChild(el("span", "kind", "Гости · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
+      r1.appendChild(el("span", "pill " + tp.cls, tp.t));
+      c.appendChild(r1);
+      c.appendChild(el("div", "who", r.guest || ""));
+      c.appendChild(el("div", "txt", r.text || ""));
+      c.appendChild(el("div", "meta", (r.by || "—") + " · " + fmtDT(r.at || "")));
+      var row3 = el("div", "btnrow");
+      var pbe = r.photos > 0 ? photoButton("events", r) : null;
+      if (pbe) row3.appendChild(pbe);
+      acceptBtn("events", r, row3); c.appendChild(row3);
+      if (pbe) c.appendChild(pbe.grid);
+      box.appendChild(c);
+      return;
+    }
+    if (x.t === "request") {
+      r1.appendChild(el("span", "kind", "🛒 Заявка на закупку · " + (r.day ? fmt(r.day) : "")));
+      c.appendChild(r1);
+      c.appendChild(el("div", "txt", (r.items || []).map(function (it) { return "• " + it.n + " — " + unitText(it.qty, it.u || "шт") + (it.comment ? " (" + it.comment + ")" : ""); }).join("\n")));
+      c.appendChild(el("div", "meta", (r.by || "—") + " · " + fmtDT(r.at || "")));
+      var row2 = el("div", "btnrow"); acceptBtn("requests", r, row2); c.appendChild(row2);
+      box.appendChild(c);
+      return;
+    }
+    r1.appendChild(el("span", "kind", (r.kind === "checkin" ? "Заезд · " : "Выезд · ") + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
+    var st = STATUS[r.status];
+    r1.appendChild(el("span", "pill " + (st ? st.cls : "neutral"), st ? st.t : String(r.status || "")));
+    c.appendChild(r1);
+    c.appendChild(el("div", "who", r.guest || ""));
+    if (r.lost) c.appendChild(el("div", "txt", "Забытые вещи: " + r.lost));
+    if (r.note) c.appendChild(el("div", "txt", "Ущерб и замечания: " + r.note));
+    c.appendChild(el("div", "meta", (r.by || "—") + " · " + fmtDT(r.at || "")));
+    var row = el("div", "btnrow");
+    var pb = r.photos > 0 ? photoButton("reports", r) : null;
+    if (pb) row.appendChild(pb);
+    c.appendChild(row);
+    if (pb) c.appendChild(pb.grid);
+    acceptBtn("reports", r, row);
+    box.appendChild(c);
+  });
+}
+// Кнопка «Фото (N)»: грузит фото из подколлекции по клику; сетка лежит в pb.grid.
+function photoButton(coll, r) {
+  var pb = el("button", "btn secondary", "Фото (" + r.photos + ")"); pb.type = "button";
+  var grid = el("div", "photos"); grid.hidden = true;
+  pb.grid = grid;
+  pb.addEventListener("click", function () {
+    if (!grid.hidden) { grid.hidden = true; pb.textContent = "Фото (" + r.photos + ")"; return; }
+    pb.disabled = true; pb.textContent = "Загружаю…";
+    MODE.db.collection(coll + "/" + r.id + "/photos").orderBy("order").get().then(function (snap) {
+      grid.textContent = "";
+      snap.docs.forEach(function (d) {
+        var p = d.data(); if (!p || !p.dataUrl) return;
+        var fg = el("figure", "ph");
+        var im = document.createElement("img"); im.src = p.dataUrl; im.alt = PHOTO_TAGS[p.tag] || "Фото";
+        fg.appendChild(im);
+        fg.appendChild(el("figcaption", null, PHOTO_TAGS[p.tag] || "Фото"));
+        grid.appendChild(fg);
+      });
+      if (!grid.children.length) grid.appendChild(el("p", "hint", "Фото не загрузились."));
+      grid.hidden = false; pb.disabled = false; pb.textContent = "Скрыть фото";
+    }, function () { pb.disabled = false; pb.textContent = "Фото (" + r.photos + ")"; toast("Не удалось загрузить фото"); });
+  });
+  return pb;
+}
+
+// ---------- Инициализация ----------
+function renderHeader() {
+  document.getElementById("range").textContent = "Две недели вперёд: " + fmt(TODAY) + " — " + fmt(LAST) + ". Время местное, Алматы.";
+  var gen = DATA.generated || "";
+  var st = document.getElementById("stale");
+  var ageH = gen.length >= 16 ? (Date.parse(almatyNow() + ":00Z") - Date.parse(gen + ":00Z")) / 3600000 : 999;
+  if (ageH > 26) { st.hidden = false; st.textContent = "График не обновлялся с " + fmtDT(gen) + ". Уточни заезды у Сергея."; }
+  else st.hidden = true;
+  document.getElementById("foot").textContent = "Данные обновлены " + fmtDT(gen) + ". Показаны только имена гостей, без контактов." + (window.ZZ_VER ? " Версия приложения " + window.ZZ_VER + "." : "");
+}
+function renderAll() { renderHeader(); renderCal(); renderTasks(); renderBuy(); renderReports(); updateBadge(); }
+
+// ---------- Тема: как на телефоне (авто), светлая или тёмная ----------
+var THEME_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+function renderThemeChips() {
+  var box = document.getElementById("theme"); if (!box) return;
+  box.textContent = "";
+  var pref = store("zz:theme") || "auto";
+  [["auto", "Как телефон"], ["light", "Светлая"], ["dark", "Тёмная"]].forEach(function (p) {
+    var c = el("button", "chip", p[1]); c.type = "button"; c.id = "theme-" + p[0]; c.setAttribute("aria-pressed", String(pref === p[0]));
+    c.addEventListener("click", function () { store("zz:theme", p[0]); applyTheme(); });
+    box.appendChild(c);
+  });
+}
+function applyTheme() {
+  var pref = store("zz:theme") || "auto";
+  var dark = pref === "dark" || (pref === "auto" && THEME_MQ && THEME_MQ.matches);
+  var want = dark ? "dark" : "light";
+  if (document.documentElement.getAttribute("data-theme") !== want) document.documentElement.setAttribute("data-theme", want);
+  renderThemeChips();
+}
+applyTheme();
+if (THEME_MQ) { if (THEME_MQ.addEventListener) THEME_MQ.addEventListener("change", applyTheme); else if (THEME_MQ.addListener) THEME_MQ.addListener(applyTheme); }
+try { new MutationObserver(function () { applyTheme(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] }); } catch (e) {}
+
+renderAll();
+renderWho();
+bootGate();
+
+// Свежие данные: файл рядом со страницей (в claude.ai) или адрес из window.ZZ_DATA_URL (отдельное приложение).
+// Последняя удачная копия хранится на телефоне — без связи приложение открывается с ней.
+var DATA_URL = (typeof window.ZZ_DATA_URL === "string" && window.ZZ_DATA_URL) ? window.ZZ_DATA_URL : "data.json";
+function validData(j) { return !!(j && Array.isArray(j.bookings) && Array.isArray(j.houses) && j.rules); }
+try {
+  var cached = JSON.parse(store("zz:data") || "null");
+  if (validData(cached) && (!DATA.generated || String(cached.generated) > String(DATA.generated))) { DATA = cached; renderAll(); }
+} catch (e) {}
+try {
+  // Файл может быть и обычным JSON, и base64-кодированным (feed.txt на отдельном адресе — чтобы имена гостей не индексировались).
+  function parseFeed(t) {
+    try { return JSON.parse(t); } catch (e) {}
+    try { var bin = atob(t.replace(/\s+/g, "")); var u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return JSON.parse(new TextDecoder("utf-8").decode(u8)); } catch (e2) { return null; }
+  }
+  fetch(DATA_URL, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
+    var j = t ? parseFeed(t) : null;
+    if (validData(j)) { DATA = j; renderAll(); try { localStorage.setItem("zz:data", JSON.stringify(j)); } catch (e) {} }
+  }).catch(function () {});
+} catch (e) {}
+
+// ---------- Установка как приложение (отдельный адрес): кнопка «Установить» на Android, подсказка на iPhone ----------
+var INSTALL_EVT = null;
+window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); INSTALL_EVT = e; renderA2hs(); });
+window.addEventListener("appinstalled", function () { INSTALL_EVT = null; store("zz:a2hs", "1"); renderA2hs(); toast("Приложение установлено"); });
+if ("serviceWorker" in navigator && window.ZZ_SW) {
+  try {
+    navigator.serviceWorker.register(window.ZZ_SW).catch(function () {});
+    var hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", function () { if (hadController) toast("Приложение обновилось — закрой и открой заново"); hadController = true; });
+  } catch (e) {}
+}
+
+// Общая база: отчёты и заявки. Доступна вошедшим в claude.ai; без неё страница работает как справочник.
+(function lightUp() {
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  Promise.all([window.claude.use("db"), window.claude.use("user")]).then(function (res) {
+    MODE.db = res[0]; MODE.user = res[1];
+    var p = Promise.resolve();
+    if (MODE.user) {
+      p = Promise.all([MODE.user.me(), MODE.user.can("data.write")]).then(function (u) {
+        var m = u[0] || {};
+        MODE.me = (m.name || "").trim(); MODE.isOwner = !!m.isOwner; MODE.canWrite = u[1];
+      }, function () {});
+    }
+    p.then(accountKnown, accountKnown);
+    p.then(function () {
+      if (!MODE.db) return;
+      document.getElementById("tabs").hidden = false;
+      renderBuy(); renderTasks();
+      MODE.db.collection("tasks").orderBy("at", "desc").limit(100).onSnapshot(function (snap) {
+        TASKS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderTasks(); renderReports(); updateBadge();
+      }, function () {});
+      MODE.db.collection("reports").orderBy("at", "desc").limit(200).onSnapshot(function (snap) {
+        REPORTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderCal(); renderReports(); updateBadge();
+      }, function () {});
+      MODE.db.collection("requests").orderBy("at", "desc").limit(100).onSnapshot(function (snap) {
+        REQUESTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderReports(); updateBadge();
+      }, function () {});
+      MODE.db.collection("events").orderBy("at", "desc").limit(300).onSnapshot(function (snap) {
+        EVENTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        renderReports(); updateBadge();
+      }, function () {});
+    });
+  }).catch(function () {});
+})();
+</script>
+
+</body>
+</html>
