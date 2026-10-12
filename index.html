@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610111521";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610120239";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -75,8 +75,9 @@ h1 { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter
   :root:not([data-theme="light"]) .logo-dark { display: block; }
   :root:not([data-theme="light"]) .logo-light { display: none; }
 }
-.theme .chip { font-size: 12px; padding: 5px 10px; }
-.chip.who { font-size: 13px; }
+/* Зоны нажатия: всё, что нажимают пальцем, — не ниже 44 px (правки арт-директора 12.10) */
+.theme .chip { font-size: 13px; }
+.chip.who { font-size: 14px; }
 /* Вход: имя один раз */
 #gate { position: fixed; inset: 0; z-index: 30; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); overflow-y: auto; }
 .gcard { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 18px; display: flex; flex-direction: column; gap: 12px; }
@@ -87,7 +88,7 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .stale { background: var(--bad-bg); color: var(--bad-ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; font-weight: 500; }
 
 .tabs { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
-.tab { all: unset; cursor: pointer; flex: 1; text-align: center; font-size: 14px; font-weight: 600; padding: 8px 10px; border-radius: 9px; color: var(--muted); display: flex; justify-content: center; gap: 6px; align-items: center; }
+.tab { all: unset; cursor: pointer; flex: 1; text-align: center; font-size: 14px; font-weight: 600; padding: 11px 10px; min-height: 44px; box-sizing: border-box; border-radius: 9px; color: var(--muted); display: flex; justify-content: center; gap: 6px; align-items: center; }
 .tab[aria-selected="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
 .badge { background: var(--warn-ink); color: var(--surface); font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; font-variant-numeric: tabular-nums; }
 .view { display: flex; flex-direction: column; gap: 14px; }
@@ -97,16 +98,20 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .cal-hd, .wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
 .cal-hd { background: var(--surface-2); border-bottom: 1px solid var(--line); }
 .cal-hd span { text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 6px 0; }
-.wk { row-gap: 3px; padding-bottom: 8px; min-height: 64px; grid-auto-rows: min-content;
+.wk { row-gap: 8px; padding-bottom: 8px; min-height: 64px; grid-auto-rows: min-content;
   background-image: linear-gradient(to right, var(--line) 1px, transparent 1px); background-size: calc(100% / 7) 100%; }
 .wk + .wk { border-top: 1px solid var(--line); }
-.dn { grid-row: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 5px 0 2px; font-variant-numeric: tabular-nums; }
+.dn { grid-row: 1; text-align: center; font-size: 13px; font-weight: 600; padding: 5px 0 0; font-variant-numeric: tabular-nums; }
 .dn.past { color: var(--muted); font-weight: 500; }
 .dn.now span { display: inline-block; min-width: 24px; padding: 2px 4px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); }
-.bar { all: unset; box-sizing: border-box; cursor: pointer; min-width: 0; margin: 0 2px; padding: 2px 5px; border-radius: 5px; background: var(--hc); color: var(--hi, #fff); font-size: 11.5px; font-weight: 600; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Полоска заезда — главная кнопка приложения: 36 px видимых, зона нажатия 44 px (ряды идут с шагом 44 px) */
+.bar { all: unset; box-sizing: border-box; position: relative; cursor: pointer; min-width: 0; height: 36px; margin: 0 2px; padding: 0 7px; border-radius: 8px; background: var(--hc); color: var(--hi, #fff); font-size: 13px; font-weight: 600; line-height: 36px; -webkit-tap-highlight-color: transparent; }
+.bar .bt { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar::after { content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -4px; }
 .bar.cl { margin-left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .bar.cr { margin-right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .bar.past { opacity: 0.55; }
+.bar:active { filter: brightness(0.92); }
 .bar:focus-visible, .tab:focus-visible, .btn:focus-visible, .close:focus-visible, .check input:focus-visible, .field:focus-visible, .radio input:focus-visible, .blkhead:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cal-ft { font-size: 12px; color: var(--muted); padding: 6px 10px; border-top: 1px solid var(--line); background: var(--surface-2); display: flex; gap: 14px; flex-wrap: wrap; }
 .cal-ft span { display: inline-flex; align-items: center; gap: 5px; }
@@ -135,7 +140,7 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .reqsum .rlist { font-size: 14.5px; overflow-wrap: anywhere; }
 .reqsum .rlist b { font-variant-numeric: tabular-nums; }
 .rtable { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.rrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 10px; border-top: 1px solid var(--line); }
+.rrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 5px 10px; min-height: 54px; border-top: 1px solid var(--line); }
 .rrow:first-child { border-top: 0; }
 .rrow .rn { font-size: 14.5px; min-width: 0; overflow-wrap: anywhere; }
 .rrow .rn small { display: block; color: var(--muted); font-size: 12px; }
@@ -146,7 +151,7 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .rline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; }
 .rline .num { width: 88px; }
 .rline .sel { flex: 1; min-width: 150px; }
-.tx-inline { all: unset; cursor: pointer; font-weight: 700; color: var(--muted); padding: 4px 6px; }
+.tx-inline { all: unset; box-sizing: border-box; cursor: pointer; font-weight: 700; color: var(--muted); min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .rline .buyq { font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 .rline .buyq.zero { color: var(--muted); font-weight: 500; }
 
@@ -156,7 +161,10 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .shead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .stitle { font-family: var(--font-display); font-weight: 500; font-size: 18px; margin: 0; overflow-wrap: anywhere; }
 .shouse { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; display: flex; align-items: center; gap: 6px; margin-top: 4px; color: var(--muted); }
-.close { all: unset; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--accent); padding: 4px 2px; flex: none; }
+/* Закрыть карточку: круглая кнопка ✕ 44 px (также закрывается свайпом по затемнению, Escape и кнопкой «Назад» на Android) */
+.close { all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--line); color: var(--fg); display: inline-flex; align-items: center; justify-content: center; margin: -6px -6px 0 0; -webkit-tap-highlight-color: transparent; }
+.close svg { width: 18px; height: 18px; }
+.close:active { background: var(--line); }
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14.5px; margin: 0; }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
@@ -179,7 +187,7 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .ev .evt { min-width: 0; overflow-wrap: anywhere; }
 .ev .evm { display: block; font-size: 12px; color: var(--muted); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chip { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.chip { font: inherit; font-size: 14px; font-weight: 600; padding: 9px 14px; min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .plain { margin: 0; padding-left: 18px; font-size: 14.5px; display: flex; flex-direction: column; gap: 4px; }
 .blk { border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); overflow: hidden; }
@@ -196,34 +204,39 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .blkbody { padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); border-top: 1px solid var(--line); }
 .lead { margin: 0; font-size: 14px; }
 .lead.warn { color: var(--warn-ink); }
-.check { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; padding: 5px 0; cursor: pointer; }
-.check input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--accent); }
+/* Пункт чек-листа: вся строка — кнопка, не ниже 44 px; галочка 26 px */
+.check { display: flex; align-items: center; gap: 12px; font-size: 15px; min-height: 44px; padding: 4px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.check + .check { border-top: 1px solid var(--line); }
+.check input { width: 26px; height: 26px; margin: 0; flex: none; accent-color: var(--accent); }
 .check input:checked + span { color: var(--muted); text-decoration: line-through; }
 .foot { color: var(--muted); font-size: 12.5px; }
 
 .form { display: flex; flex-direction: column; gap: 10px; }
 .grp { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
-.radio { display: flex; align-items: center; gap: 10px; font-size: 15px; padding: 6px 0; cursor: pointer; }
-.radio input { width: 20px; height: 20px; margin: 0; flex: none; accent-color: var(--accent); }
+.radio { display: flex; align-items: center; gap: 12px; font-size: 15px; min-height: 44px; padding: 4px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.radio input { width: 24px; height: 24px; margin: 0; flex: none; accent-color: var(--accent); }
 .lbl { font-size: 12.5px; color: var(--muted); font-weight: 600; display: flex; flex-direction: column; gap: 4px; }
-.field { font: inherit; font-size: 15px; color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; width: 100%; min-width: 0; }
+.field { font: inherit; font-size: 15px; color: var(--fg); background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-height: 44px; width: 100%; min-width: 0; }
 textarea.field { min-height: 70px; resize: vertical; }
-.btn { font: inherit; font-size: 15px; font-weight: 700; padding: 11px 16px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+.btn { font: inherit; font-size: 15px; font-weight: 700; padding: 11px 16px; min-height: 44px; box-sizing: border-box; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 a.btn { display: inline-block; text-decoration: none; text-align: center; box-sizing: border-box; }
 /* Подсказка «поставь на экран Домой» — один раз */
 .a2hs { background: var(--surface); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 14px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
 .a2hs ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
 .a2hs .ttl { font-weight: 700; }
 .btn.secondary { background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); font-weight: 600; }
-.btn.sm { font-size: 13px; padding: 7px 12px; border-radius: 8px; }
+.btn.sm { font-size: 13.5px; padding: 8px 14px; border-radius: 9px; }
 .btn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn:disabled { opacity: 0.6; cursor: default; }
 .btnrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+/* «Очистить» стоит отдельно от «Отправить» и «Скопировать», чтобы не нажать по ошибке; стирание можно вернуть */
+.btnrow.end { justify-content: flex-end; margin-top: 2px; }
 .pgrp { display: flex; flex-direction: column; gap: 8px; }
 .thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
 .thumb { position: relative; width: 84px; height: 84px; }
 .thumb img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
-.thumb .tx { all: unset; position: absolute; top: -6px; right: -6px; width: 24px; height: 24px; border-radius: 50%; background: var(--fg); color: var(--bg); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.thumb .tx { all: unset; position: absolute; top: -8px; right: -8px; width: 30px; height: 30px; border-radius: 50%; background: var(--fg); color: var(--bg); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+.thumb .tx::after { content: ""; position: absolute; inset: -8px; } /* зона нажатия 46 px при кнопке 30 px */
 .photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .photos figure { margin: 0; min-width: 0; }
 .photos img { width: 100%; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
@@ -239,7 +252,9 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
 .kind { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .reports { display: flex; flex-direction: column; gap: 8px; }
 
-#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; max-width: calc(100% - 32px); text-align: center; }
+#toast { position: fixed; left: 16px; right: 16px; width: fit-content; max-width: calc(100% - 32px); margin-inline: auto; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--fg); color: var(--bg); padding: 10px 18px; min-height: 44px; border-radius: 999px; font-size: 14px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 14px; }
+/* Действие в уведомлении: «Вернуть» после стирания */
+#toast .tact { all: unset; cursor: pointer; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; padding: 8px 2px; white-space: nowrap; }
 @media (prefers-reduced-motion: no-preference) { #sheet { animation: up 0.18s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } } }
 </style>
 
@@ -262,7 +277,7 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
   </nav>
   <section class="view" id="view-schedule">
     <section class="cal" id="cal" aria-label="Сетка заездов по неделям"></section>
-    <p class="hint">Нажми на имя гостя: откроются даты, комментарий из календаря и чек-листы подготовки.</p>
+    <p class="hint" id="calhint">Нажми на имя гостя: откроются даты, комментарий из календаря и чек-листы подготовки.</p>
     <section class="tasks" id="tasks" aria-label="Задания по дому"></section>
     <section class="buy" id="buy" aria-label="Закупка на ближайшие заезды"></section>
   </section>
@@ -278,7 +293,7 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
     <img class="logo logo-light" src="logo-light.svg" alt="HYGGE HOME" width="507" height="96">
     <img class="logo logo-dark" src="logo-dark.svg" alt="HYGGE HOME" width="507" height="96">
     <h2 class="stitle" id="gtitle">Как тебя зовут?</h2>
-    <p class="lead">Имя подставится во все отчёты и заявки. Спрашиваем один раз.</p>
+    <p class="lead" id="glead">Имя подставится во все отчёты и заявки. Спрашиваем один раз.</p>
     <div class="chips" id="gnames"></div>
     <input class="field" id="gname" type="text" placeholder="Или впиши имя" autocomplete="given-name">
     <div class="btnrow"><button class="btn" id="genter" type="button">Войти</button><span class="hint" id="ghint"></span></div>
@@ -359,11 +374,19 @@ function store(key, val) {
   return null;
 }
 var toastTimer = null;
-function toast(msg) {
+// Уведомление внизу. opts: { ms — сколько показывать; action + onAction — кнопка в уведомлении, например «Вернуть» после стирания }
+function toast(msg, opts) {
+  opts = opts || {};
   var t = document.getElementById("toast");
-  t.textContent = msg; t.hidden = false;
+  t.textContent = msg;
+  if (opts.action) {
+    var a = el("button", "tact", opts.action); a.type = "button";
+    a.addEventListener("click", function () { t.hidden = true; clearTimeout(toastTimer); if (opts.onAction) opts.onAction(); });
+    t.appendChild(a);
+  }
+  t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(function () { t.hidden = true; }, 3500);
+  toastTimer = setTimeout(function () { t.hidden = true; }, opts.ms || (opts.action ? 5000 : 3500));
 }
 function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
 
@@ -375,11 +398,17 @@ function renderWho() {
   var n = whoAmI();
   b.textContent = n ? "👤 " + n : "👤 Войти";
 }
+// Версия исполнителя (без claude.ai): имя только из списка TEAM — чужое или управляющее имя вписать нельзя (Сергей, 12.10).
+// Версия управляющего (пульт в claude.ai): имя берётся из аккаунта; свободное поле остаётся на случай, если у аккаунта нет имени.
+function freeNameAllowed() { return !!window.claude; }
 function openGate() {
   var g = document.getElementById("gate");
   var names = document.getElementById("gnames"), inp = document.getElementById("gname");
   names.textContent = "";
   var cur = whoAmI();
+  var free = freeNameAllowed();
+  inp.hidden = !free;
+  document.getElementById("glead").textContent = free ? "Имя подставится во все отчёты и заявки. Спрашиваем один раз." : "Выбери своё имя — оно подпишет отчёты и заявки. Спрашиваем один раз.";
   TEAM.forEach(function (n) {
     var c = el("button", "chip", n); c.type = "button"; c.setAttribute("aria-pressed", String(n === cur));
     c.addEventListener("click", function () { inp.value = n; Array.prototype.forEach.call(names.children, function (x) { x.setAttribute("aria-pressed", String(x === c)); }); });
@@ -388,16 +417,17 @@ function openGate() {
   inp.value = cur;
   document.getElementById("ghint").textContent = "";
   g.hidden = false;
-  if (!cur) setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
+  if (!cur && free) setTimeout(function () { try { inp.focus(); } catch (e) {} }, 50);
 }
 function closeGate() {
   var inp = document.getElementById("gname");
   var n = inp.value.trim().replace(/\s+/g, " ").slice(0, 40);
-  if (!n) { document.getElementById("ghint").textContent = "Выбери или впиши имя."; return; }
+  if (!freeNameAllowed() && TEAM.indexOf(n) < 0) n = ""; // в версии исполнителя — только имена из списка
+  if (!n) { document.getElementById("ghint").textContent = freeNameAllowed() ? "Выбери или впиши имя." : "Выбери своё имя."; return; }
   store("zz:name", n);
   document.getElementById("gate").hidden = true;
   renderWho();
-  toast("Привет, " + n + "!");
+  toast("Привет, " + n + "!", { ms: 2000 }); // коротко: уведомление внизу не должно долго закрывать кнопки
   renderA2hs();
 }
 document.getElementById("genter").addEventListener("click", closeGate);
@@ -409,7 +439,7 @@ var UA = navigator.userAgent || "";
 var IS_IOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 var IS_ANDROID = /Android/i.test(UA);
 var IS_WEBVIEW = /; wv\)/.test(UA) || /\bClaude\//i.test(UA); // встроенный браузер приложения (например, приложения Claude): камера и галерея там не открываются
-var STAFF_CHAT = "Чистота и уют";
+var STAFF_CHAT = "HYGGE Круче всех"; // чат команды в WhatsApp (Сергей, 12.10)
 function waUrl(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function dataUrlToFile(dataUrl, name) {
   try {
@@ -569,7 +599,7 @@ function renderCal() {
       bar.style.gridColumn = (c0 + 1) + " / " + (c1 + 2);
       bar.style.gridRow = String(lane + 2);
       var rep = latestReport(b.id, "checkout") || latestReport(b.id, "checkin");
-      bar.textContent = (rep && STATUS[rep.status] ? STATUS[rep.status].glyph + " " : "") + b.guest + (b.tag ? " " + b.tag : "");
+      bar.appendChild(el("span", "bt", (rep && STATUS[rep.status] ? STATUS[rep.status].glyph + " " : "") + b.guest + (b.tag ? " " + b.tag : "")));
       bar.title = h.name + " · " + b.guest + " · " + fmtDT(b.inAt) + " → " + fmtDT(b.outAt);
       bar.setAttribute("aria-label", bar.title);
       bar.addEventListener("click", function () { openSheet(b.id, bar); });
@@ -672,7 +702,8 @@ function renderBuy() {
   var live = canTryDb();
   var hint = el("span", "hint", "");
   var fb = document.createElement("textarea"); fb.className = "fallback"; fb.id = "q-fallback"; fb.readOnly = true; fb.hidden = true;
-  var clear = el("button", "btn secondary", "Очистить"); clear.type = "button"; clear.id = "q-clear";
+  var clear = el("button", "btn secondary sm", "Очистить заявку"); clear.type = "button"; clear.id = "q-clear"; clear.title = "Стереть все строки заявки на этом телефоне";
+  var clearRow = el("div", "btnrow end"); clearRow.appendChild(clear);
   // Текст заявки для WhatsApp / буфера: null, если заявка пуста или имя не введено.
   function buildText() {
     var items = requestItems();
@@ -683,13 +714,14 @@ function renderBuy() {
   var send;
   if (live) {
     send = el("button", "btn", "Отправить заявку"); send.type = "button"; send.id = "q-send";
-    brow.appendChild(send); brow.appendChild(clear); brow.appendChild(hint);
+    brow.appendChild(send); brow.appendChild(hint);
   } else {
     send = waButton("q-send", buildText, null, hint, null);
-    brow.appendChild(send); brow.appendChild(copyButton("q-copy", buildText, hint, fb)); brow.appendChild(clear); brow.appendChild(hint);
+    brow.appendChild(send); brow.appendChild(copyButton("q-copy", buildText, hint, fb)); brow.appendChild(hint);
   }
   sum.appendChild(brow);
   sum.appendChild(fb);
+  sum.appendChild(clearRow);
   box.appendChild(sum);
   function refreshSum() {
     refreshCounts();
@@ -719,7 +751,13 @@ function renderBuy() {
       hint.className = "hint err"; hint.textContent = how;
     });
   });
-  clear.addEventListener("click", function () { REQ_ROWS.forEach(function (r) { reqSet(r.key, null); }); renderBuy(); });
+  // Стирание с возвратом: 5 секунд на «Вернуть» (ошибку легко отменить)
+  clear.addEventListener("click", function () {
+    var snap = REQ_ROWS.map(function (r) { return [r.key, store("zz:req:" + r.key)]; }).filter(function (p) { return p[1]; });
+    if (!snap.length) { toast("Заявка и так пуста"); return; }
+    REQ_ROWS.forEach(function (r) { reqSet(r.key, null); }); renderBuy();
+    toast("Заявка очищена", { action: "Вернуть", onAction: function () { snap.forEach(function (p) { store("zz:req:" + p[0], p[1]); }); renderBuy(); toast("Заявка возвращена"); } });
+  });
 
   // Раздел закупки — собранный блок, как в карточке брони; справа счётчик строк в заявке.
   var SECT_CNT = {};
@@ -826,7 +864,7 @@ function renderBuy() {
     body.appendChild(t);
   }
   table("Welcome-пакет · итого по броням", T.breakfast, "welcome", "Норма на ночь × ночи по каждой брони, сложено по обоим домам.");
-  table("Расходники · набор на заезд × заезды", T.supplies, "supplies", (S.rule || "").replace(/ Источник.*$/, ""));
+  table("Расходники · на " + T.stays + " " + plural(T.stays, ["заезд", "заезда", "заездов"]), T.supplies, "supplies", (S.rule || "").replace(/ Источник.*$/, ""));
   table("Дом и инвентарь", (S.house || []).map(function (it, i) { return { key: "house|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "house", "Без расчёта: выбери вид, впиши, сколько нужно, уточни в комментарии.");
   table("Для уборки", (S.cleaning || []).map(function (it, i) { return { key: "clean|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "cleaning", null);
   refreshSum();
@@ -1125,12 +1163,20 @@ function reportForm(b) {
     row.appendChild(send); row.appendChild(hint);
   } else {
     send = waButton("r-send", buildText, function () { return state.photos; }, hint, null);
-    var wipe = el("button", "btn secondary", "Очистить"); wipe.type = "button"; wipe.id = "r-wipe"; wipe.title = "Удалить черновик отчёта с телефона";
-    wipe.addEventListener("click", function () { store(draftKey(b), null); toast("Черновик удалён"); closeSheet(); });
-    row.appendChild(send); row.appendChild(copyButton("r-copy", buildText, hint, fb)); row.appendChild(wipe); row.appendChild(hint);
+    var wipe = el("button", "btn secondary sm", "Очистить черновик"); wipe.type = "button"; wipe.id = "r-wipe"; wipe.title = "Стереть черновик отчёта с этого телефона";
+    // Стирание с возвратом: черновик держим 5 секунд, «Вернуть» открывает карточку заново с ним
+    wipe.addEventListener("click", function () {
+      var snap = store(draftKey(b));
+      if (!snap) { toast("Черновик и так пуст"); return; }
+      store(draftKey(b), null); closeSheet();
+      toast("Черновик очищен", { action: "Вернуть", onAction: function () { store(draftKey(b), snap); openSheet(b.id, lastFocus); toast("Черновик возвращён"); } });
+    });
+    row.appendChild(send); row.appendChild(copyButton("r-copy", buildText, hint, fb)); row.appendChild(hint);
+    var wipeRow = el("div", "btnrow end"); wipeRow.appendChild(wipe);
   }
   form.appendChild(row);
   form.appendChild(fb);
+  if (wipeRow) form.appendChild(wipeRow);
 
   if (live) send.addEventListener("click", function () {
     hint.className = "hint";
@@ -1303,10 +1349,15 @@ function openSheet(id, trigger) {
   var dot = el("i", "dot"); dot.style.setProperty("--hc", "var(--h-" + h.id + ")");
   hs.appendChild(dot); hs.appendChild(document.createTextNode(h.name));
   tw.appendChild(hs);
-  var x = el("button", "close", "Закрыть"); x.type = "button";
+  var x = el("button", "close"); x.type = "button"; x.setAttribute("aria-label", "Закрыть"); x.title = "Закрыть";
+  var xs = document.createElementNS("http://www.w3.org/2000/svg", "svg"); xs.setAttribute("viewBox", "0 0 16 16"); xs.setAttribute("aria-hidden", "true");
+  var xp = document.createElementNS("http://www.w3.org/2000/svg", "path"); xp.setAttribute("d", "M3 3l10 10M13 3L3 13"); xp.setAttribute("fill", "none"); xp.setAttribute("stroke", "currentColor"); xp.setAttribute("stroke-width", "2"); xp.setAttribute("stroke-linecap", "round");
+  xs.appendChild(xp); x.appendChild(xs);
   x.addEventListener("click", closeSheet);
   head.appendChild(tw); head.appendChild(x);
   sh.appendChild(head);
+  // Подсказка «нажми на имя гостя» нужна только до первого открытия карточки
+  if (!store("zz:hint1")) { store("zz:hint1", "1"); var ch = document.getElementById("calhint"); if (ch) ch.hidden = true; }
 
   var f = el("dl", "facts");
   var facts = [["Заезд", wd(dOf(b.inAt)) + " " + fmtDT(b.inAt)], ["Выезд", wd(dOf(b.outAt)) + " " + fmtDT(b.outAt)], ["Срок", nightsWord(nightsOf(b))]];
@@ -1361,18 +1412,29 @@ function openSheet(id, trigger) {
   blocks.appendChild(phaseGroup("Гости в доме и выезд", "выезд " + fmt(dOf(b.outAt)) + " " + tOf(b.outAt), !before, !before, stay));
   sh.appendChild(blocks);
 
-  sh.appendChild(el("p", "foot", "Галочки сохраняются только на этом телефоне. Нормы: " + (R.source || "КАНОН HYGGE") + "."));
+  var srcDate = ((R.source || "").match(/\d{2}\.\d{2}\.\d{4}/) || [])[0];
+  sh.appendChild(el("p", "foot", "Галочки видны только на этом телефоне — Сергей их не видит. Нормы из КАНОНА HYGGE" + (srcDate ? " от " + srcDate : "") + "."));
 
   document.getElementById("overlay").hidden = false;
   sh.hidden = false;
   sh.scrollTop = 0;
+  // Кнопка «Назад» на Android закрывает карточку, а не приложение: запись в истории на время открытой карточки
+  if (!SHEET_HIST) { try { history.pushState({ zz: "sheet" }, ""); SHEET_HIST = true; } catch (e) { SHEET_HIST = false; } }
   x.focus();
 }
+var SHEET_HIST = false; // открытая карточка держит запись в истории браузера
 function closeSheet() {
-  document.getElementById("sheet").hidden = true;
+  var sh = document.getElementById("sheet");
+  if (sh.hidden) return;
+  sh.hidden = true;
   document.getElementById("overlay").hidden = true;
   if (lastFocus) try { lastFocus.focus(); } catch (e) {}
+  if (SHEET_HIST) { SHEET_HIST = false; try { history.back(); } catch (e) {} }
 }
+window.addEventListener("popstate", function () {
+  // Пришли «Назад»: если карточка открыта — закрыть её (запись уже снята)
+  if (!document.getElementById("sheet").hidden) { SHEET_HIST = false; closeSheet(); }
+});
 document.getElementById("overlay").addEventListener("click", closeSheet);
 document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !document.getElementById("sheet").hidden) closeSheet(); });
 
