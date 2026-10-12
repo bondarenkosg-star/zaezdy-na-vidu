@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610120239";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610120255";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -115,6 +115,8 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .bar:focus-visible, .tab:focus-visible, .btn:focus-visible, .close:focus-visible, .check input:focus-visible, .field:focus-visible, .radio input:focus-visible, .blkhead:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .cal-ft { font-size: 12px; color: var(--muted); padding: 6px 10px; border-top: 1px solid var(--line); background: var(--surface-2); display: flex; gap: 14px; flex-wrap: wrap; }
 .cal-ft span { display: inline-flex; align-items: center; gap: 5px; }
+.cal-ft.tags { border-top: 1px dashed var(--line); gap: 6px 14px; }
+.cal-ft.tags b { font-weight: 800; color: var(--fg); }
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--hc); display: inline-block; }
 .empty { color: var(--muted); font-size: 13.5px; padding: 8px 10px; }
 .hint { font-size: 13px; color: var(--muted); }
@@ -252,6 +254,11 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
 .kind { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .reports { display: flex; flex-direction: column; gap: 8px; }
 
+/* Карточка гостя */
+.guest { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.guest.flag { border-color: var(--warn-ink); }
+.guest .gt { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.guest .note { margin: 0; }
 #toast { position: fixed; left: 16px; right: 16px; width: fit-content; max-width: calc(100% - 32px); margin-inline: auto; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--fg); color: var(--bg); padding: 10px 18px; min-height: 44px; border-radius: 999px; font-size: 14px; font-weight: 600; text-align: center; display: flex; align-items: center; justify-content: center; gap: 14px; }
 /* Действие в уведомлении: «Вернуть» после стирания */
 #toast .tact { all: unset; cursor: pointer; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; padding: 8px 2px; white-space: nowrap; }
@@ -280,6 +287,7 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
     <p class="hint" id="calhint">Нажми на имя гостя: откроются даты, комментарий из календаря и чек-листы подготовки.</p>
     <section class="tasks" id="tasks" aria-label="Задания по дому"></section>
     <section class="buy" id="buy" aria-label="Закупка на ближайшие заезды"></section>
+    <section class="buy" id="ginfo" aria-label="Важная информация и инструкции для гостей"></section>
   </section>
   <section class="view" id="view-reports" hidden>
     <p class="hint" id="rintro">Отчёты сотрудников и заявки на закупку. Новые сверху.</p>
@@ -311,7 +319,7 @@ a.btn { display: inline-block; text-decoration: none; text-align: center; box-si
 // ДАННЫЕ. Основной источник: файл data.json рядом со страницей (его обновляет агент «Заезды на виду»).
 // Блок app-data выше — запасная копия на случай, если файл недоступен. Контактов гостей здесь нет.
 var DATA = JSON.parse(document.getElementById("app-data").textContent);
-var REPORTS = [], REQUESTS = [], EVENTS = [], TASKS = [];
+var REPORTS = [], REQUESTS = [], EVENTS = [], TASKS = [], GUESTS = [];
 var MODE = { db: null, user: null, me: "", isOwner: false, canWrite: null, writeRefused: false };
 var EVENT_TYPES = {
   request: { t: "Просьба", cls: "ok", hint: "что попросили гости: ножи, доски, дрова…" },
@@ -616,7 +624,21 @@ function renderCal() {
     ft.appendChild(s);
   });
   box.appendChild(ft);
+  // Расшифровка меток рядом с именем гостя (Сергей, 12.10) — чтобы новичок понял без вопросов
+  var lg = el("div", "cal-ft tags"); lg.id = "taglegend";
+  Object.keys(TAGS).forEach(function (k) {
+    var s = el("span"); s.appendChild(el("b", null, k)); s.appendChild(document.createTextNode(" " + TAGS[k].short));
+    lg.appendChild(s);
+  });
+  box.appendChild(lg);
 }
+// Метки гостей в названии события календаря (словами Сергея, 12.10)
+var TAGS = {
+  "ПГ": { short: "постоянный гость: был у нас больше 3 раз", long: "постоянный гость — был у нас больше 3 раз" },
+  "ЧГ": { short: "частый гость: 2-й или 3-й раз", long: "частый гость — приезжает 2-й или 3-й раз" },
+  "БГ": { short: "будущий гость: едет впервые", long: "будущий гость — едет к нам в первый раз" },
+  "ИГ": { short: "интересный гость: ждём впервые", long: "интересный гость — ещё не приезжал, но мы будем рады его видеть" }
+};
 
 // ---------- Нормы: завтрак и расходники ----------
 // Завтрак: точная норма на N ночей, если она есть в КАНОНЕ; иначе норма на 1 ночь × N.
@@ -1128,7 +1150,6 @@ function reportForm(b) {
       form.appendChild(l);
     });
   }
-  radios("Перед заездом", ["ready", "notready"]);
   radios("После выезда", ["ok", "issues", "stayed"]);
 
   form.appendChild(el("div", "grp", "Забытые вещи"));
@@ -1332,6 +1353,170 @@ function phaseGroup(title, when, open, active, children) {
   return g;
 }
 
+// ---------- Карточка гостя: комментарий Сергея + история за все заезды ----------
+// Гость узнаётся по имени из календаря. Однофамильцев различай буквой в названии события: «Азамат Б ПГ …».
+var NO_CARD = ["booking", "airbnb", "гость", "гости"];
+function gkey(n) { return String(n || "").trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " "); }
+function hasCard(name) { var k = gkey(name); return !!k && NO_CARD.indexOf(k) < 0; }
+var HIST_TYPES = {
+  request: { t: "Просьба", cls: "ok" }, violation: { t: "Нарушение", cls: "bad" }, note: { t: "Заметка", cls: "neutral" },
+  lost: { t: "Забыли вещи", cls: "warn" }, damage: { t: "Замечание", cls: "warn" }, stayed: { t: "Не выехали", cls: "bad" }
+};
+function reportHist(r) {
+  var out = [], base = { day: r.day || "", house: r.house, by: r.by || "", bookingId: r.bookingId };
+  if (r.lost) out.push(Object.assign({ src: "reports/" + r.id + ":lost", type: "lost", text: r.lost }, base));
+  if (r.note) out.push(Object.assign({ src: "reports/" + r.id + ":note", type: "damage", text: r.note }, base));
+  if (r.status === "stayed") out.push(Object.assign({ src: "reports/" + r.id + ":stayed", type: "stayed", text: STATUS.stayed.t }, base));
+  return out;
+}
+// Всё о госте: из data.json (агент), из базы guests и из свежих событий и отчётов.
+function guestInfo(name) {
+  var k = gkey(name);
+  var base = ((DATA.guests || {})[k]) || {};
+  var docs = GUESTS.filter(function (g) { return gkey(g.key || g.name) === k; });
+  var comment = base.comment || "", commentBy = base.commentBy || "", commentAt = base.commentAt || "";
+  docs.forEach(function (d) { if (d.comment != null && (d.commentAt || "") >= commentAt) { comment = d.comment; commentBy = d.commentBy || ""; commentAt = d.commentAt || ""; } });
+  var seen = {}, hist = [];
+  function push(h) { if (!h || !h.text) return; var s = h.src || (h.day + "|" + h.type + "|" + h.text); if (seen[s]) return; seen[s] = 1; hist.push(h); }
+  docs.forEach(function (d) { (d.history || []).forEach(push); });
+  (base.history || []).forEach(push);
+  EVENTS.filter(function (e) { return gkey(e.guest) === k; }).forEach(function (e) { push({ src: "events/" + e.id, day: e.day || "", house: e.house, type: e.type, text: e.text, by: e.by || "", bookingId: e.bookingId }); });
+  REPORTS.filter(function (r) { return gkey(r.guest) === k; }).forEach(function (r) { reportHist(r).forEach(push); });
+  hist.sort(function (a, c) { return (a.day || "") < (c.day || "") ? 1 : (a.day || "") > (c.day || "") ? -1 : 0; });
+  return { key: k, docs: docs, comment: comment, commentBy: commentBy, commentAt: commentAt, history: hist };
+}
+function saveGuestComment(name, text) {
+  var g = guestInfo(name), now = almatyNow();
+  var body = { comment: text, commentBy: whoAmI(), commentAt: now, updatedAt: now };
+  if (g.docs.length) return MODE.db.doc("guests/" + g.docs[0].id).update(body);
+  body.key = g.key; body.name = String(name).trim(); body.history = [];
+  return MODE.db.collection("guests").add(body).then(function () {});
+}
+function guestBox(b) {
+  if (!hasCard(b.guest)) return null;
+  var box = el("section", "guest"); box.id = "guestbox";
+  box.appendChild(el("div", "gt", "Карточка гостя · " + b.guest));
+  var editable = canTryDb() && !!MODE.me;
+  var ta = null;
+  if (editable) {
+    var lbl = el("label", "lbl", "Комментарий о госте — видят все сотрудники");
+    ta = document.createElement("textarea"); ta.className = "field"; ta.id = "g-comment";
+    ta.placeholder = "Например: постоянный гость, заселяется сам";
+    lbl.appendChild(ta); box.appendChild(lbl);
+    var row = el("div", "btnrow");
+    var save = el("button", "btn sm", "Сохранить"); save.type = "button"; save.id = "g-save";
+    var hint = el("span", "hint", "");
+    row.appendChild(save); row.appendChild(hint); box.appendChild(row);
+    ta.addEventListener("input", function () { ta.dataset.dirty = "1"; hint.textContent = ""; });
+    save.addEventListener("click", function () {
+      save.disabled = true; hint.className = "hint"; hint.textContent = "Сохраняю…";
+      saveGuestComment(b.guest, ta.value.trim()).then(function () {
+        save.disabled = false; ta.dataset.dirty = ""; hint.textContent = "Сохранено"; toast("Комментарий сохранён");
+      }, function (e) { save.disabled = false; hint.className = "hint err"; hint.textContent = "Не сохранилось (" + ((e && e.code) || "ошибка") + "). Попробуй ещё раз."; });
+    });
+  }
+  var cmView = el("div"); box.appendChild(cmView);
+  var histBox = el("div", "evlist"); box.appendChild(histBox);
+  box.appendChild(el("p", "foot", "Карточка собирается по имени гостя за все заезды. Если это другой человек с тем же именем — добавь в название события в календаре первую букву фамилии."));
+  function fill() {
+    var g = guestInfo(b.guest);
+    cmView.textContent = "";
+    if (ta) {
+      if (!ta.dataset.dirty) ta.value = g.comment;
+      if (g.commentAt) cmView.appendChild(el("span", "hint", "Изменено: " + (g.commentBy ? g.commentBy + ", " : "") + fmtDT(g.commentAt)));
+    } else if (g.comment) {
+      cmView.appendChild(el("div", "note", "💬 " + g.comment));
+    }
+    histBox.textContent = "";
+    var past = g.history.filter(function (h) { return h.bookingId !== b.id; });
+    box.className = "guest" + (past.some(function (h) { return h.type !== "request"; }) ? " flag" : "");
+    if (!g.history.length) { histBox.appendChild(el("p", "hint", "История пуста: гость у нас впервые или о нём ничего не записывали.")); return; }
+    if (past.length) histBox.appendChild(el("p", "lead warn", "Гость уже был у нас. Учти записи ниже при подготовке и при выезде."));
+    g.history.slice(0, 15).forEach(function (h) {
+      var r = el("div", "ev");
+      var tp = HIST_TYPES[h.type] || { t: "Запись", cls: "neutral" };
+      r.appendChild(el("span", "pill " + tp.cls, tp.t));
+      var t = el("span", "evt", h.text);
+      t.appendChild(el("span", "evm", [h.day ? fmt(h.day) : "", h.house ? houseOf(h.house).name : "", h.by || "", h.bookingId === b.id ? "этот заезд" : ""].filter(Boolean).join(" · ")));
+      r.appendChild(t); histBox.appendChild(r);
+    });
+  }
+  box.refresh = fill; fill();
+  return box;
+}
+function refreshGuest() {
+  var gb = document.getElementById("guestbox");
+  if (gb && gb.refresh && !document.getElementById("sheet").hidden) gb.refresh();
+}
+
+// ---------- Важная информация и инструкции для гостей (внизу главного экрана) ----------
+// Источник: КАНОН «00_Справочник» (F-номера). Можно переопределить в data.json → rules.guest.{common,nordic,hygge}.
+// Пункты без данных помечены «нет данных» — их заполняет Сергей; сотрудник не придумывает.
+var GUEST_INFO = {
+  common: [
+    { t: "Заезд и выезд", items: ["Заезд 15:00–22:00, время согласуем заранее", "Выезд до 12:00", "Самостоятельное заселение: ключи в мини-сейфе"] },
+    { t: "Правила дома", items: ["Тишина: в будни 22:00–09:00, в выходные и праздники 23:00–10:00 (закон РК). Громкая музыка и караоке в это время запрещены", "Курить в доме нельзя, включая IQOS и кальян: штраф от 50 000 ₸. На террасе и на территории можно", "Животные — только по договорённости"] },
+    { t: "Что входит в проживание", items: ["Вязанка дров для кострища, мангала и казана", "Пачка маршмеллоу", "Деревенские продукты к завтраку: привозим 8:30–9:30, по запросу — при заезде", "Уборка и смена белья — если гости живут больше 3 суток"] }
+  ],
+  nordic: [
+    { t: "Wi-Fi", items: ["Сеть: нет данных", "Пароль: нет данных"], gap: true },
+    { t: "Бытовая техника", items: ["Духовка (и блокировка от детей): инструкция готовится", "Варочная панель: инструкция готовится", "Посудомоечная машина: инструкция готовится", "Стиральная машина: инструкция готовится"], gap: true },
+    { t: "Сауна", items: ["Сауна с влажным паром внутри дома, электрическая, 2 часа, платно", "Гости включают сами"] },
+    { t: "Уличная кухня", items: ["Мангал на 10 шампуров, казан 16 л с очагом", "Коктальница: рыба 3–4 кг, бронируется заранее", "Шампуры и решётки на месте"] },
+    { t: "Дом", items: ["2 спальни, 1 санузел", "Парковка на 2 машины"] }
+  ],
+  hygge: [
+    { t: "Wi-Fi", items: ["Сеть: нет данных", "Пароль: нет данных"], gap: true },
+    { t: "Бытовая техника", items: ["Духовка (и блокировка от детей): инструкция готовится", "Варочная панель: инструкция готовится", "Посудомоечная машина: инструкция готовится", "Стиральная машина: инструкция готовится"], gap: true },
+    { t: "Русская баня", items: ["Баня на дровах, отдельное помещение, 2 часа, платно", "Тёплый душ в бане"] },
+    { t: "Караоке", items: ["Есть в доме. После начала тишины — только негромко"] },
+    { t: "Уличная кухня", items: ["Мангал на 25 шампуров, казан 22 л с очагом", "Коктальница 70×40 см, кострище", "Шампуры и решётки на месте"] },
+    { t: "Дом", items: ["3 санузла с душем: 1 этаж, 2 этаж, в большой спальне", "Парковка на 5 машин", "Бассейн сезонный, летом"] }
+  ]
+};
+function renderGuestInfo() {
+  var box = document.getElementById("ginfo"); if (!box) return;
+  box.textContent = "";
+  var G = (DATA.rules && DATA.rules.guest) || GUEST_INFO;
+  box.appendChild(el("h2", "sec", "Важная информация и инструкции для гостей"));
+  box.appendChild(el("p", "sub", "Что ответить гостю без звонка Сергею. Нет данных — не придумывай, напиши в чат «" + STAFF_CHAT + "»."));
+  var chips = el("div", "chips"); box.appendChild(chips);
+  var list = el("div", "blocks"); box.appendChild(list);
+  var cur = store("zz:ginfo") || (DATA.houses[0] && DATA.houses[0].id) || "";
+  function fold(sec, i) {
+    var d = el("div", "blk buyfold");
+    var head = el("button", "blkhead"); head.type = "button"; head.id = "gi-" + cur + "-" + i; head.setAttribute("aria-expanded", "false");
+    head.appendChild(chev()); head.appendChild(el("span", "ttl", sec.t));
+    if (sec.gap) head.appendChild(el("span", "cnt", "нет данных"));
+    var body = el("div", "blkbody"); body.hidden = true;
+    var ul = el("ul", "plain"); (sec.items || []).forEach(function (t) { ul.appendChild(el("li", null, t)); });
+    body.appendChild(ul);
+    head.addEventListener("click", function () { var o = body.hidden; body.hidden = !o; head.setAttribute("aria-expanded", String(o)); });
+    d.appendChild(head); d.appendChild(body); return d;
+  }
+  function draw() {
+    chips.textContent = ""; list.textContent = "";
+    DATA.houses.forEach(function (h) {
+      var c = el("button", "chip", h.name); c.type = "button"; c.id = "gi-house-" + h.id; c.setAttribute("aria-pressed", String(h.id === cur));
+      c.addEventListener("click", function () { cur = h.id; store("zz:ginfo", cur); draw(); });
+      chips.appendChild(c);
+    });
+    var secs = (G[cur] || []).concat(G.common || []);
+    secs.forEach(function (sec, i) { list.appendChild(fold(sec, i)); });
+  }
+  draw();
+}
+
+// Проверка дома после выезда: что сделать, если уборка не сегодня (чек-лист можно переопределить в rules.aftercheck).
+var AFTERCHECK = [
+  "Вынести пищевой мусор с кухни",
+  "Закрыть все окна и двери",
+  "Если в доме посторонний запах — оставить окна на верхнем открывании (проветривание)",
+  "При необходимости убавить отопление",
+  "Выключить свет",
+  "Закрыть гигиенические души"
+];
+
 // ---------- Карточка брони (нижняя шторка) ----------
 function openSheet(id, trigger) {
   var b = byId(id); if (!b) return;
@@ -1361,9 +1546,10 @@ function openSheet(id, trigger) {
 
   var f = el("dl", "facts");
   var facts = [["Заезд", wd(dOf(b.inAt)) + " " + fmtDT(b.inAt)], ["Выезд", wd(dOf(b.outAt)) + " " + fmtDT(b.outAt)], ["Срок", nightsWord(nightsOf(b))]];
-  if (b.tag) facts.push(["Метка", b.tag]);
+  if (b.tag) facts.push(["Метка", b.tag + (TAGS[b.tag] ? " — " + TAGS[b.tag].long : "")]);
   facts.forEach(function (p) { f.appendChild(el("dt", null, p[0])); f.appendChild(el("dd", null, p[1])); });
   sh.appendChild(f);
+  var gbox = guestBox(b); if (gbox) sh.appendChild(gbox);
 
   if (b.notes && b.notes.length) {
     var nb = el("div", "note");
@@ -1405,7 +1591,8 @@ function openSheet(id, trigger) {
   var stay = [
     block("Просьбы и поведение гостей", null, b.id, "events", null, eventForm(b)),
     block(cl.type === "express" ? "Уборка после выезда: экспресс" : "Уборка после выезда: обычная", cleanLead, b.id, "clean-" + cl.type, cl.type === "express" ? (C.express || []) : (C.regular || [])),
-    block("Отчёт о выезде: вещи, ущерб", null, b.id, "report", null, reportForm(b))
+    block("Отчёт о выезде: вещи, ущерб", null, b.id, "report", null, reportForm(b)),
+    block("Проверка дома после выезда", { text: "Если сегодня уборка не планируется, перед уходом важно:", warn: true }, b.id, "aftercheck", R.aftercheck || AFTERCHECK)
   ];
   var blocks = el("div", "blocks");
   blocks.appendChild(phaseGroup("Подготовка к заезду", "до " + fmt(dOf(b.inAt)) + " " + tOf(b.inAt), before, before, prep));
@@ -1565,7 +1752,7 @@ function renderHeader() {
   else st.hidden = true;
   document.getElementById("foot").textContent = "Данные обновлены " + fmtDT(gen) + ". Показаны только имена гостей, без контактов." + (window.ZZ_VER ? " Версия приложения " + window.ZZ_VER + "." : "");
 }
-function renderAll() { renderHeader(); renderCal(); renderTasks(); renderBuy(); renderReports(); updateBadge(); }
+function renderAll() { renderHeader(); renderCal(); renderTasks(); renderBuy(); renderGuestInfo(); renderReports(); updateBadge(); }
 
 // ---------- Тема: как на телефоне (авто), светлая или тёмная ----------
 var THEME_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -1649,7 +1836,7 @@ if ("serviceWorker" in navigator && window.ZZ_SW) {
       }, function () {});
       MODE.db.collection("reports").orderBy("at", "desc").limit(200).onSnapshot(function (snap) {
         REPORTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
-        renderCal(); renderReports(); updateBadge();
+        renderCal(); renderReports(); updateBadge(); refreshGuest();
       }, function () {});
       MODE.db.collection("requests").orderBy("at", "desc").limit(100).onSnapshot(function (snap) {
         REQUESTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
@@ -1657,7 +1844,11 @@ if ("serviceWorker" in navigator && window.ZZ_SW) {
       }, function () {});
       MODE.db.collection("events").orderBy("at", "desc").limit(300).onSnapshot(function (snap) {
         EVENTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
-        renderReports(); updateBadge();
+        renderReports(); updateBadge(); refreshGuest();
+      }, function () {});
+      MODE.db.collection("guests").onSnapshot(function (snap) {
+        GUESTS = snap.docs.filter(function (d) { return d.exists; }).map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+        refreshGuest();
       }, function () {});
     });
   }).catch(function () {});
