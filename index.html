@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610120454";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610120457";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -650,9 +650,13 @@ function breakfastSet(b) {
     ? exact.map(function (it) { return { n: it.n, q: it.q, u: it.u, adj: it.adj, alt: it.alt, pack: it.pack }; })
     : (r.per_night || []).map(function (it) { return { n: it.n, q: it.q * n, u: it.u, adj: it.adj, alt: n === 1 ? it.alt : null, pack: it.pack }; });
   var lead = exact ? "Набор на " + nightsWord(n) + " по норме КАНОНА." : (n === 1 ? "Продукты для завтрака на 1 ночь." : "Набор на " + nightsWord(n) + ": норма на 1 ночь × " + n + ".");
+  items.sort(byName); // наименования — по алфавиту (Сергей, 12.10); порядок чек-листов КАНОНА не трогаем
   return { items: items, lead: lead, key: String(n), nights: n };
 }
 function itemText(it) { return it.n + " " + unitText(it.q, it.u, it.adj) + (it.alt ? " (" + it.alt + ")" : ""); }
+// Алфавитный порядок наименований (Сергей, 12.10): продукты, расходники, позиции закупки. «Другое…» всегда в конце.
+function byName(a, c) { var an = a.n || a.name || "", cn = c.n || c.name || ""; var ao = /^друг/i.test(an), co = /^друг/i.test(cn); if (ao !== co) return ao ? 1 : -1; return an.localeCompare(cn, "ru"); }
+function withIndex(list) { return (list || []).map(function (it, i) { return { it: it, i: i }; }).sort(function (a, c) { return byName(a.it, c.it); }); }
 function upcoming() { return DATA.bookings.filter(function (b) { var d = dOf(b.inAt); return d >= TODAY && d <= LAST && houseOf(b.house); }); }
 // Итого по всем броням на 14 дней, оба дома вместе. Упаковки (pack) округляются вверх.
 function totals() {
@@ -668,7 +672,7 @@ function totals() {
     (((DATA.rules.supplies || {}).perStay || {})[b.house] || []).forEach(function (it) { add(sup, stayQty(it, b)); });
   });
   function rows(acc) {
-    return Object.keys(acc).map(function (k) {
+    return Object.keys(acc).sort(function (a, c) { return byName(acc[a], acc[c]); }).map(function (k) {
       var it = acc[k];
       if (it.pack) return { key: it.key, name: it.n, need: Math.ceil(it.q / it.pack), unit: "шт", note: "упаковка " + it.pack + " " + it.u + ", всего " + unitText(it.q, it.u) };
       if (it.u === "пакет") return { key: it.key, name: it.n + (it.adj ? ", " + it.adj + " пакет" : ""), need: it.q, unit: "шт", note: null };
@@ -892,8 +896,8 @@ function renderBuy() {
   }
   table("Welcome-пакет · итого по броням", T.breakfast, "welcome", "Норма на ночь × ночи по каждой брони, сложено по обоим домам.");
   table("Расходники · на " + T.stays + " " + plural(T.stays, ["заезд", "заезда", "заездов"]), T.supplies, "supplies", (S.rule || "").replace(/ Источник.*$/, ""));
-  table("Дом и инвентарь", (S.house || []).map(function (it, i) { return { key: "house|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "house", "Без расчёта: выбери вид, впиши, сколько нужно, уточни в комментарии.");
-  table("Для уборки", (S.cleaning || []).map(function (it, i) { return { key: "clean|" + i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "cleaning", null);
+  table("Дом и инвентарь", withIndex(S.house).map(function (x) { var it = x.it; return { key: "house|" + x.i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "house", "Без расчёта: выбери вид, впиши, сколько нужно, уточни в комментарии.");
+  table("Для уборки", withIndex(S.cleaning).map(function (x) { var it = x.it; return { key: "clean|" + x.i, name: it.n, need: null, unit: "шт", hint: it.hint, variants: it.variants || null }; }), "cleaning", null);
   refreshSum();
 }
 function submitRequest(body) {
