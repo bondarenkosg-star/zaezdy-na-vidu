@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610130355";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610130401";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1944,8 +1944,12 @@ window.addEventListener("appinstalled", function () { INSTALL_EVT = null; store(
 if ("serviceWorker" in navigator && window.ZZ_SW) {
   try {
     navigator.serviceWorker.register(window.ZZ_SW).catch(function () {});
-    var hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener("controllerchange", function () { if (hadController) toast("Приложение обновилось — закрой и открой заново"); hadController = true; });
+    var hadController = !!navigator.serviceWorker.controller, zzReloading = false;
+    // Обновление в одно касание: не просим закрывать приложение — кнопка «Обновить» сама перезагружает (Сергей, 13.10)
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (!hadController) { hadController = true; return; }
+      toast("Есть новая версия", { action: "Обновить", ms: 10000, onAction: function () { if (zzReloading) return; zzReloading = true; location.reload(); } });
+    });
   } catch (e) {}
 }
 
