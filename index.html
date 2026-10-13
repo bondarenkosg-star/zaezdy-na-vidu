@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610130402";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610130532";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -293,7 +293,23 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 .blk.done .blkhead .cnt { color: var(--ok-ink); }
 .blk.done .blkhead .cnt::before { content: "✓ готово · "; }
 @media (prefers-reduced-motion: no-preference) { #sheet { animation: up 0.18s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: 0.6; } to { transform: none; opacity: 1; } } }
+/* Заставка (загрузка): логотип + «Чистота и уют» во весь экран — без системной рамки вокруг иконки. Фон белый, как у системной заставки, поэтому перехода не видно. */
+#zz-splash { position: fixed; inset: 0; z-index: 9999; background: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; padding: 24px; box-sizing: border-box; transition: opacity 0.35s ease; }
+#zz-splash.hide { opacity: 0; pointer-events: none; }
+#zz-splash .zz-mk { width: 132px; height: 132px; display: block; }
+#zz-splash .zz-ttl { font-family: var(--font-display); font-weight: 600; font-size: 23px; letter-spacing: 0.16em; text-transform: uppercase; color: #1F5C4A; text-align: center; margin: 0; }
 </style>
+
+<div id="zz-splash" aria-hidden="true">
+  <svg class="zz-mk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="HYGGE HOME">
+    <path fill="none" stroke-width="5" stroke="#1E1E1C" stroke-miterlimit="4" d="M 17.000554 3.001292 L 78.999815 3.001292 C 86.730182 3.001292 92.998892 10.731659 92.998892 17.000369 L 92.998892 78.999631 C 92.998892 86.729998 86.730182 92.998708 78.999815 92.998708 L 17.000554 92.998708 C 9.270187 92.998708 3.001477 85.268341 3.001477 78.999631 L 3.001477 17.000369 C 3.001477 9.270002 9.270187 3.001292 17.000554 3.001292 Z" transform="matrix(0.999508,0,0,0.999508,0,0.023622)"/>
+    <path fill="none" stroke-width="5.248" stroke="#B8732C" stroke-miterlimit="4" d="M 15.198886 77.237045 L 15.198886 72.320563 L 25.039666 62.479782 L 34.880447 72.320563 L 34.880447 77.237045" transform="matrix(0.999508,0,0,0.999508,0,0.023622)"/>
+    <path fill="none" stroke-width="5.248" stroke="#B8732C" stroke-miterlimit="4" d="M 33.239014 67.396264 L 33.239014 62.479782 L 45.538035 50.180761 L 57.840965 62.479782 L 57.840965 67.396264" transform="matrix(0.999508,0,0,0.999508,0,0.023622)"/>
+    <path fill="none" stroke-width="5.248" stroke="#B8732C" stroke-miterlimit="4" d="M 61.119922 59.200825 L 61.119922 54.280435 L 75.877185 39.519264 L 81.6222 45.260371" transform="matrix(0.999508,0,0,0.999508,0,0.023622)"/>
+    <path fill="#B8732C" d="M 81.160156 20.015625 C 81.160156 26.945312 70.765625 26.945312 70.765625 20.015625 C 70.765625 13.082031 81.160156 13.082031 81.160156 20.015625 Z"/>
+  </svg>
+  <div class="zz-ttl">Чистота и уют</div>
+</div>
 
 <div class="wrap">
   <header class="hdr">
@@ -432,7 +448,7 @@ function toast(msg, opts) {
 function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
 
 // ---------- Вход: имя спрашиваем один раз, дальше подставляем везде ----------
-var APP_VER = "v8.2"; // видимая версия приложения (аудитор, 12.10)
+var APP_VER = "v8.3"; // видимая версия приложения (аудитор, 12.10)
 var TEAM = ["Дулат", "Ирина"]; // сотрудники; Сергей и Олеся входят через аккаунт claude.ai
 function whoAmI() { return (store("zz:name") || MODE.me || "").trim(); }
 function renderWho() {
@@ -1916,6 +1932,18 @@ try { new MutationObserver(function () { applyTheme(); }).observe(document.docum
 renderAll();
 renderWho();
 bootGate();
+
+// Заставка гаснет, когда приложение готово (но держится минимум 0.5 с, чтобы не мигала).
+(function () {
+  var sp = document.getElementById("zz-splash"); if (!sp) return;
+  var shownAt = Date.now();
+  function hide() {
+    var wait = Math.max(0, 500 - (Date.now() - shownAt));
+    setTimeout(function () { sp.classList.add("hide"); setTimeout(function () { if (sp.parentNode) sp.parentNode.removeChild(sp); }, 450); }, wait);
+  }
+  if (document.readyState === "complete") hide(); else window.addEventListener("load", hide);
+  setTimeout(hide, 4000); // страховка: не зависнуть на заставке, если load не пришёл
+})();
 
 // Свежие данные: файл рядом со страницей (в claude.ai) или адрес из window.ZZ_DATA_URL (отдельное приложение).
 // Последняя удачная копия хранится на телефоне — без связи приложение открывается с ней.
