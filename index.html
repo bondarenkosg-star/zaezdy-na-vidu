@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610130532";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610142205";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -410,7 +410,7 @@ function unitText(q, u, adj) {
   }
   return q + " " + u;
 }
-function houseOf(id) { return DATA.houses.filter(function (h) { return h.id === id; })[0] || { id: id, name: id }; }
+function houseOf(id) { return DATA.houses.filter(function (h) { return h.id === id; })[0] || { id: id, name: id || "Управление" }; }
 function byId(id) { return DATA.bookings.filter(function (b) { return b.id === id; })[0]; }
 function almatyNow() {
   try { return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Almaty", hour12: false }).replace(" ", "T").slice(0, 16); }
@@ -974,23 +974,24 @@ function submitRequest(body) {
 }
 
 // ---------- Задания по дому: Сергей или Олеся увидели проблему → задание сотруднику с фото ----------
-function taskText(t) { return "Задание · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
+var TASK_TO = ["Олеся", "Дулат", "Ирина"]; // кому можно поставить задание; Олесе — управленческие и закупочные, без дома
+function taskText(t) { return "Задание" + (t.to ? " для " + t.to : "") + " · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
 function renderTasks() {
   var box = document.getElementById("tasks");
   box.textContent = "";
   var live = !!MODE.db;
-  var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []);
+  var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []).filter(function (t) { return !t.to || t.to === whoAmI(); });
   box.appendChild(el("h2", "sec", "Задания по дому"));
   if (!open.length) box.appendChild(el("p", "hint", "Открытых заданий нет."));
   open.forEach(function (t) {
     var c = el("div", "task");
-    c.style.setProperty("--hc", "var(--h-" + t.house + ")");
+    if (t.house) c.style.setProperty("--hc", "var(--h-" + t.house + ")");
     var r1 = el("div", "row1");
-    r1.appendChild(el("span", "kind", houseOf(t.house).name + " · " + fmtDT(t.at || "")));
+    r1.appendChild(el("span", "kind", (t.to ? t.to + " · " : "") + houseOf(t.house).name + " · " + fmtDT(t.at || "")));
     r1.appendChild(el("span", "pill warn", "Сделать"));
     c.appendChild(r1);
     c.appendChild(el("div", "ttxt", t.text || ""));
-    c.appendChild(el("div", "meta", "От: " + (t.by || "—")));
+    c.appendChild(el("div", "meta", "От: " + (t.by || "—") + (t.to ? " · Кому: " + t.to : "")));
     var row = el("div", "btnrow");
     var pb = (live && t.photos > 0) ? photoButton("tasks", t) : null;
     if (pb) row.appendChild(pb);
@@ -1018,11 +1019,26 @@ function renderTasks() {
   if (canTryDb()) {
     var f = el("div", "tform form");
     f.appendChild(el("div", "grp", "Требует внимания"));
+    var tst = { to: TASK_TO[1] };
+    f.appendChild(el("div", "grp", "Кому"));
+    var tchips = el("div", "chips"); f.appendChild(tchips);
     var hsel = document.createElement("select"); hsel.className = "field"; hsel.id = "t-house";
     DATA.houses.forEach(function (h) { var o = document.createElement("option"); o.value = h.id; o.textContent = h.name; hsel.appendChild(o); });
+    var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text";
+    function syncTo() {
+      var mgmt = tst.to === "Олеся"; // Олесе дом не нужен: просто окно для задания
+      hsel.hidden = mgmt;
+      txt.placeholder = mgmt ? "Что сделать или купить: например, купить новый матрас" : "Что сделать: например, помыть казан, протереть полы на кухне";
+      Array.prototype.forEach.call(tchips.children, function (x) { x.setAttribute("aria-pressed", String(x.textContent === tst.to)); });
+    }
+    TASK_TO.forEach(function (n) {
+      var c = el("button", "chip", n); c.type = "button"; c.id = "t-to-" + n;
+      c.addEventListener("click", function () { tst.to = n; syncTo(); });
+      tchips.appendChild(c);
+    });
     f.appendChild(hsel);
-    var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text"; txt.placeholder = "Что сделать: например, помыть казан, протереть полы на кухне";
     f.appendChild(txt);
+    syncTo();
     var st = { photos: [] };
     f.appendChild(photoPicker("task", st, function () {}));
     var row2 = el("div", "btnrow");
@@ -1034,7 +1050,7 @@ function renderTasks() {
       var text = txt.value.trim(); if (!text) { hint.className = "hint err"; hint.textContent = "Напиши, что сделать."; return; }
       var who = whoAmI(); if (!who) { openGate(); return; }
       var now = almatyNow();
-      var body = { house: hsel.value, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
+      var body = { house: tst.to === "Олеся" ? "" : hsel.value, to: tst.to, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
       send.disabled = true; hint.textContent = "Создаю…";
       submitDoc("tasks", body, st.photos, taskText(body)).then(function (how) {
         send.disabled = false;
@@ -1772,7 +1788,7 @@ function renderReports() {
     var c = el("div", "report" + (r.seen ? " seen" : ""));
     var r1 = el("div", "row1");
     if (x.t === "task") {
-      r1.appendChild(el("span", "kind", "Задание · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
+      r1.appendChild(el("span", "kind", "Задание" + (r.to ? " для " + r.to : "") + " · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
       r1.appendChild(el("span", "pill ok", "Выполнено"));
       c.appendChild(r1);
       c.appendChild(el("div", "txt", r.text || ""));

@@ -1,5 +1,5 @@
 // Service worker «Заезды на виду»: оболочка из кеша (работает без связи), данные — сеть, потом кеш.
-var VER = "zz-202610130532";
+var VER = "zz-202610142205";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./logo-light.svg", "./logo-dark.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(VER).then(function (c) { return c.addAll(SHELL); }).then(function () { return self.skipWaiting(); }));
