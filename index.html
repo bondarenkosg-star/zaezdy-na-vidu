@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610211607";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610211930";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -327,6 +327,7 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
     <p class="sub" id="range"></p>
   </header>
   <div id="stale" class="stale" hidden></div>
+  <div id="loaderr" class="stale" hidden style="margin-top:8px"></div>
   <div id="a2hs" class="a2hs" hidden></div>
   <section class="view" id="view-schedule">
     <section class="cal" id="cal" aria-label="Сетка заездов по неделям"></section>
@@ -452,7 +453,7 @@ function toast(msg, opts) {
 function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
 
 // ---------- Вход: имя спрашиваем один раз, дальше подставляем везде ----------
-var APP_VER = "v8.4"; // видимая версия приложения (аудитор, 12.10; v8.4 — погода + отопление, 21.10)
+var APP_VER = "v8.5"; // v8.5 — видимая ошибка загрузки + обход кэша данных (22.10)
 var TEAM = ["Дулат", "Ирина"]; // сотрудники; Сергей и Олеся входят через аккаунт claude.ai
 function whoAmI() { return (store("zz:name") || MODE.me || "").trim(); }
 function renderWho() {
@@ -2004,6 +2005,14 @@ weatherLoad(); // прогноз по Бескайнару → погода/от
 // Последняя удачная копия хранится на телефоне — без связи приложение открывается с ней.
 var DATA_URL = (typeof window.ZZ_DATA_URL === "string" && window.ZZ_DATA_URL) ? window.ZZ_DATA_URL : "data.json";
 function validData(j) { return !!(j && Array.isArray(j.bookings) && Array.isArray(j.houses) && j.rules); }
+// Плашка «не удалось обновить»: ошибка загрузки должна быть видна, а не молча оставлять старый график.
+function showLoadError(reason) {
+  var e2 = document.getElementById("loaderr"); if (!e2) return;
+  var gen = DATA.generated ? fmtDT(DATA.generated) : "неизвестно когда";
+  e2.hidden = false;
+  e2.textContent = "Не удалось обновить: " + reason + ". Показаны данные от " + gen + ". Потяни вниз и переоткрой приложение; если не ушло — сообщи Сергею.";
+}
+function clearLoadError() { var e2 = document.getElementById("loaderr"); if (e2) e2.hidden = true; }
 try {
   var cached = JSON.parse(store("zz:data") || "null");
   if (validData(cached) && (!DATA.generated || String(cached.generated) > String(DATA.generated))) { DATA = cached; renderAll(); }
@@ -2014,10 +2023,21 @@ try {
     try { return JSON.parse(t); } catch (e) {}
     try { var bin = atob(t.replace(/\s+/g, "")); var u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return JSON.parse(new TextDecoder("utf-8").decode(u8)); } catch (e2) { return null; }
   }
-  fetch(DATA_URL, { cache: "no-store" }).then(function (r) { return r.ok ? r.text() : null; }).then(function (t) {
-    var j = t ? parseFeed(t) : null;
-    if (validData(j)) { DATA = j; renderAll(); try { localStorage.setItem("zz:data", JSON.stringify(j)); } catch (e) {} }
-  }).catch(function () {});
+  // Обойти кэш браузера/CDN на самом адресе данных (кэш service worker обходит no-store + сеть-сначала).
+  var furl = DATA_URL + (DATA_URL.indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now();
+  fetch(furl, { cache: "no-store" }).then(function (r) {
+    if (!r.ok) { showLoadError("сервер ответил " + r.status); return null; }
+    return r.text();
+  }).then(function (t) {
+    if (t == null) return; // ошибка уже показана
+    var j = parseFeed(t);
+    if (!j) { showLoadError("не удалось прочитать данные (формат)"); return; }
+    if (!validData(j)) { showLoadError("данные неполные"); return; }
+    DATA = j; try { localStorage.setItem("zz:data", JSON.stringify(j)); } catch (e) {}
+    clearLoadError(); renderAll();
+  }).catch(function (err) {
+    showLoadError("нет связи" + (err && err.message ? " (" + String(err.message).slice(0, 40) + ")" : ""));
+  });
 } catch (e) {}
 
 // ---------- Установка как приложение (отдельный адрес): кнопка «Установить» на Android, подсказка на iPhone ----------
