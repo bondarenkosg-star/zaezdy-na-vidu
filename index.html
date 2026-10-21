@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610142205";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610211607";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -281,6 +281,10 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
 .prog .pl { display: flex; justify-content: space-between; }
 .prog .pb { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .prog .pb i { display: block; height: 8px; border-radius: 4px; background: var(--accent); }
+.tcard .wline { font-size: 13px; color: var(--muted); }
+.tcard .wline.frost { color: var(--warn-ink); font-weight: 600; }
+.wnote { border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.35; margin: 0 0 6px; background: var(--surface-2); color: var(--muted); }
+.wnote.frost { background: var(--warn-bg); color: var(--warn-ink); font-weight: 600; }
 /* Карточка: переключатель фаз и закреплённая кнопка */
 .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
 .seg button { all: unset; box-sizing: border-box; cursor: pointer; min-height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 9px; font-size: 15px; font-weight: 600; color: var(--muted); text-align: center; }
@@ -410,7 +414,7 @@ function unitText(q, u, adj) {
   }
   return q + " " + u;
 }
-function houseOf(id) { return DATA.houses.filter(function (h) { return h.id === id; })[0] || { id: id, name: id || "Управление" }; }
+function houseOf(id) { return DATA.houses.filter(function (h) { return h.id === id; })[0] || { id: id, name: id }; }
 function byId(id) { return DATA.bookings.filter(function (b) { return b.id === id; })[0]; }
 function almatyNow() {
   try { return new Date().toLocaleString("sv-SE", { timeZone: "Asia/Almaty", hour12: false }).replace(" ", "T").slice(0, 16); }
@@ -448,7 +452,7 @@ function toast(msg, opts) {
 function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
 
 // ---------- Вход: имя спрашиваем один раз, дальше подставляем везде ----------
-var APP_VER = "v8.3"; // видимая версия приложения (аудитор, 12.10)
+var APP_VER = "v8.4"; // видимая версия приложения (аудитор, 12.10; v8.4 — погода + отопление, 21.10)
 var TEAM = ["Дулат", "Ирина"]; // сотрудники; Сергей и Олеся входят через аккаунт claude.ai
 function whoAmI() { return (store("zz:name") || MODE.me || "").trim(); }
 function renderWho() {
@@ -974,24 +978,23 @@ function submitRequest(body) {
 }
 
 // ---------- Задания по дому: Сергей или Олеся увидели проблему → задание сотруднику с фото ----------
-var TASK_TO = ["Олеся", "Дулат", "Ирина"]; // кому можно поставить задание; Олесе — управленческие и закупочные, без дома
-function taskText(t) { return "Задание" + (t.to ? " для " + t.to : "") + " · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
+function taskText(t) { return "Задание · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
 function renderTasks() {
   var box = document.getElementById("tasks");
   box.textContent = "";
   var live = !!MODE.db;
-  var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []).filter(function (t) { return !t.to || t.to === whoAmI(); });
+  var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []);
   box.appendChild(el("h2", "sec", "Задания по дому"));
   if (!open.length) box.appendChild(el("p", "hint", "Открытых заданий нет."));
   open.forEach(function (t) {
     var c = el("div", "task");
-    if (t.house) c.style.setProperty("--hc", "var(--h-" + t.house + ")");
+    c.style.setProperty("--hc", "var(--h-" + t.house + ")");
     var r1 = el("div", "row1");
-    r1.appendChild(el("span", "kind", (t.to ? t.to + " · " : "") + houseOf(t.house).name + " · " + fmtDT(t.at || "")));
+    r1.appendChild(el("span", "kind", houseOf(t.house).name + " · " + fmtDT(t.at || "")));
     r1.appendChild(el("span", "pill warn", "Сделать"));
     c.appendChild(r1);
     c.appendChild(el("div", "ttxt", t.text || ""));
-    c.appendChild(el("div", "meta", "От: " + (t.by || "—") + (t.to ? " · Кому: " + t.to : "")));
+    c.appendChild(el("div", "meta", "От: " + (t.by || "—")));
     var row = el("div", "btnrow");
     var pb = (live && t.photos > 0) ? photoButton("tasks", t) : null;
     if (pb) row.appendChild(pb);
@@ -1019,26 +1022,11 @@ function renderTasks() {
   if (canTryDb()) {
     var f = el("div", "tform form");
     f.appendChild(el("div", "grp", "Требует внимания"));
-    var tst = { to: TASK_TO[1] };
-    f.appendChild(el("div", "grp", "Кому"));
-    var tchips = el("div", "chips"); f.appendChild(tchips);
     var hsel = document.createElement("select"); hsel.className = "field"; hsel.id = "t-house";
     DATA.houses.forEach(function (h) { var o = document.createElement("option"); o.value = h.id; o.textContent = h.name; hsel.appendChild(o); });
-    var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text";
-    function syncTo() {
-      var mgmt = tst.to === "Олеся"; // Олесе дом не нужен: просто окно для задания
-      hsel.hidden = mgmt;
-      txt.placeholder = mgmt ? "Что сделать или купить: например, купить новый матрас" : "Что сделать: например, помыть казан, протереть полы на кухне";
-      Array.prototype.forEach.call(tchips.children, function (x) { x.setAttribute("aria-pressed", String(x.textContent === tst.to)); });
-    }
-    TASK_TO.forEach(function (n) {
-      var c = el("button", "chip", n); c.type = "button"; c.id = "t-to-" + n;
-      c.addEventListener("click", function () { tst.to = n; syncTo(); });
-      tchips.appendChild(c);
-    });
     f.appendChild(hsel);
+    var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text"; txt.placeholder = "Что сделать: например, помыть казан, протереть полы на кухне";
     f.appendChild(txt);
-    syncTo();
     var st = { photos: [] };
     f.appendChild(photoPicker("task", st, function () {}));
     var row2 = el("div", "btnrow");
@@ -1050,7 +1038,7 @@ function renderTasks() {
       var text = txt.value.trim(); if (!text) { hint.className = "hint err"; hint.textContent = "Напиши, что сделать."; return; }
       var who = whoAmI(); if (!who) { openGate(); return; }
       var now = almatyNow();
-      var body = { house: tst.to === "Олеся" ? "" : hsel.value, to: tst.to, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
+      var body = { house: hsel.value, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
       send.disabled = true; hint.textContent = "Создаю…";
       submitDoc("tasks", body, st.photos, taskText(body)).then(function (how) {
         send.disabled = false;
@@ -1665,7 +1653,7 @@ function openSheet(id, trigger) {
     prep.push(block("Что просили гости раньше", "Просьбы прошлых гостей этого дома за 90 дней. Положи заранее.", b.id, "ins", null, ul));
   }
   prep.push(block("Welcome-пакет", bf.lead, b.id, "wel" + bf.key, bf.items.map(itemText)));
-  prep.push(block("Готовность дома", null, b.id, "house", ((R.house || {})[b.house] || []).map(function (t) { return fillNorm(t, b); })));
+  prep.push(block("Готовность дома", null, b.id, "house", houseItemsFor(b)));
   var bn = (R.banya || {})[b.house] || { title: "Готовность бани", items: [] };
   prep.push(block(bn.title || "Готовность бани", bn.lead || null, b.id, "banya", bn.items || []));
   prep.push(block("Готовность барбекю-зоны", null, b.id, "bbq", (R.bbq || {})[b.house] || []));
@@ -1687,6 +1675,8 @@ function openSheet(id, trigger) {
   seg.appendChild(tPrep); seg.appendChild(tOut);
   sh.appendChild(seg);
   var paneP = el("div", "blocks"); paneP.id = "pane-prep"; prep.forEach(function (x) { paneP.appendChild(x); });
+  var wnS = weatherNotice(b); // уведомление о погоде/отоплении перед заездом
+  if (wnS && before) { var wbox = el("div", "wnote" + (wnS.frost ? " frost" : "")); wbox.textContent = wnS.text; paneP.insertBefore(wbox, paneP.firstChild); }
   var paneO = el("div", "blocks"); paneO.id = "pane-out"; stay.forEach(function (x) { paneO.appendChild(x); });
   sh.appendChild(paneP); sh.appendChild(paneO);
   var srcDate = ((R.source || "").match(/\d{2}\.\d{2}\.\d{4}/) || [])[0];
@@ -1788,7 +1778,7 @@ function renderReports() {
     var c = el("div", "report" + (r.seen ? " seen" : ""));
     var r1 = el("div", "row1");
     if (x.t === "task") {
-      r1.appendChild(el("span", "kind", "Задание" + (r.to ? " для " + r.to : "") + " · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
+      r1.appendChild(el("span", "kind", "Задание · " + houseOf(r.house).name + " · " + (r.day ? fmt(r.day) : "")));
       r1.appendChild(el("span", "pill ok", "Выполнено"));
       c.appendChild(r1);
       c.appendChild(el("div", "txt", r.text || ""));
@@ -1868,10 +1858,56 @@ function photoButton(coll, r) {
   return pb;
 }
 
+// ---------- Погода по Бескайнару (Open-Meteo, без ключей) и отопление ----------
+var WEATHER = { lat: 43.19, lon: 77.06, place: "Бескайнар", data: null }; // координаты села — при необходимости уточнить
+function weatherLoad() {
+  try { var c = JSON.parse(store("zz:weather") || "null"); if (c && c.days) WEATHER.data = c; } catch (e) {}
+  var fresh = WEATHER.data && WEATHER.data.at && (Date.now() - WEATHER.data.at < 3 * 3600 * 1000);
+  if (fresh) return; // свежий прогноз есть — сеть не трогаем
+  var url = "https://api.open-meteo.com/v1/forecast?latitude=" + WEATHER.lat + "&longitude=" + WEATHER.lon +
+    "&daily=temperature_2m_min,temperature_2m_max&timezone=Asia%2FAlmaty&forecast_days=16";
+  fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j || !j.daily || !j.daily.time) return;
+    var days = {};
+    j.daily.time.forEach(function (d, i) {
+      var mn = j.daily.temperature_2m_min[i], mx = j.daily.temperature_2m_max[i];
+      if (mn != null && mx != null) days[d] = { min: Math.round(mn), max: Math.round(mx) };
+    });
+    WEATHER.data = { at: Date.now(), days: days };
+    try { store("zz:weather", JSON.stringify(WEATHER.data)); } catch (e) {}
+    renderToday(); // прогноз пришёл — обновляем «Сейчас»
+  }).catch(function () {}); // без связи — просто без погоды
+}
+function weatherFor(dateStr) { return (WEATHER.data && WEATHER.data.days && WEATHER.data.days[dateStr]) || null; }
+function fmtC(n) { return (n > 0 ? "+" : "") + n + "°"; }
+var FROST = 0; // заморозки: ночной минимум ≤ 0 °C
+// Отопительный сезон Бескайнара (высота ~1400 м): октябрь–апрель. Порог можно уточнить у Сергея.
+function heatingSeason(b) { var m = parseInt((b.inAt || "").slice(5, 7), 10); return m >= 10 || m <= 4; }
+function houseItemsFor(b) {
+  var R = DATA.rules || {};
+  var items = ((R.house || {})[b.house] || []).map(function (t) { return fillNorm(t, b); });
+  if (heatingSeason(b)) items.push("Отопление переведено из эконом-режима в обычный");
+  return items;
+}
+function heatingDeadline(b) { // за 2 часа до заезда; если время не задано — 13:00
+  var m = /^(\d{2}):(\d{2})/.exec(tOf(b.inAt) || "");
+  if (!m) return "13:00";
+  var h = (parseInt(m[1], 10) - 2 + 24) % 24;
+  return (h < 10 ? "0" : "") + h + ":" + m[2];
+}
+function weatherNotice(b) { // null, если прогноза на дату заезда нет
+  var w = weatherFor(dOf(b.inAt)); if (!w) return null;
+  var frost = w.min <= FROST;
+  var text = frost
+    ? "Ночью до " + fmtC(w.min) + ". Проверь отопление в " + houseOf(b.house).name + " до " + heatingDeadline(b) + "."
+    : "К заезду в " + WEATHER.place + ": ночью " + fmtC(w.min) + ", днём " + fmtC(w.max) + ".";
+  return { text: text, frost: frost };
+}
+
 // ---------- «Сейчас»: сегодня и завтра (v8.0) ----------
 function prepLists(b) {
   var R = DATA.rules || {}, bf = breakfastSet(b), bn = (R.banya || {})[b.house] || { items: [] };
-  return [["wel" + bf.key, bf.items.length], ["house", ((R.house || {})[b.house] || []).length], ["banya", (bn.items || []).length], ["bbq", ((R.bbq || {})[b.house] || []).length]];
+  return [["wel" + bf.key, bf.items.length], ["house", houseItemsFor(b).length], ["banya", (bn.items || []).length], ["bbq", ((R.bbq || {})[b.house] || []).length]];
 }
 function prepProgress(b) {
   var done = 0, total = 0;
@@ -1904,6 +1940,8 @@ function renderToday() {
       var pl = el("span", "pl"); pl.appendChild(el("span", null, "Подготовка дома")); pl.appendChild(el("b", null, p.done + " / " + p.total)); pr.appendChild(pl);
       var pb = el("span", "pb"), bar = el("i"); bar.style.width = (p.total ? Math.round(100 * p.done / p.total) : 0) + "%"; pb.appendChild(bar); pr.appendChild(pb);
       c.appendChild(pr);
+      var wn = weatherNotice(b);
+      if (wn) c.appendChild(el("span", "wline" + (wn.frost ? " frost" : ""), wn.text));
     }
     c.addEventListener("click", function () { openSheet(b.id, c); });
     box.appendChild(c);
@@ -1948,6 +1986,7 @@ try { new MutationObserver(function () { applyTheme(); }).observe(document.docum
 renderAll();
 renderWho();
 bootGate();
+weatherLoad(); // прогноз по Бескайнару → погода/отопление в «Сейчас» и карточке
 
 // Заставка гаснет, когда приложение готово (но держится минимум 0.5 с, чтобы не мигала).
 (function () {
