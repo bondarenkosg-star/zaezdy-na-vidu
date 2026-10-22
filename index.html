@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Заезды">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
-<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610211930";</script>
+<script>window.ZZ_DATA_URL = "feed.txt"; window.ZZ_SW = "sw.js"; window.ZZ_VER = "zz-202610221158";</script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -132,6 +132,7 @@ h3.sub3 { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transf
 .task { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--hc, var(--line)); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .task .ttxt { font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .task .meta { font-size: 12.5px; color: var(--muted); }
+.task .dline { font-size: 14px; font-weight: 700; color: var(--fg); }
 .task.done { opacity: 0.6; }
 .tform { background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; }
 
@@ -330,6 +331,7 @@ body { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
   <div id="loaderr" class="stale" hidden style="margin-top:8px"></div>
   <div id="a2hs" class="a2hs" hidden></div>
   <section class="view" id="view-schedule">
+    <section class="tasks" id="mytasks" aria-label="Мои задания"></section>
     <section class="cal" id="cal" aria-label="Сетка заездов по неделям"></section>
     <p class="hint" id="calhint">Нажми на имя гостя: откроются даты, комментарий из календаря и чек-листы подготовки.</p>
     <section class="today" id="today" aria-label="Сейчас: сегодня и завтра"></section>
@@ -453,7 +455,7 @@ function toast(msg, opts) {
 function canTryDb() { return !!MODE.db && MODE.canWrite !== false && !MODE.writeRefused; }
 
 // ---------- Вход: имя спрашиваем один раз, дальше подставляем везде ----------
-var APP_VER = "v8.5"; // v8.5 — видимая ошибка загрузки + обход кэша данных (22.10)
+var APP_VER = "v8.6"; // v8.6 — задания по ответственным, «Мои задания», автор, срок, быстрое обновление (22.10)
 var TEAM = ["Дулат", "Ирина"]; // сотрудники; Сергей и Олеся входят через аккаунт claude.ai
 function whoAmI() { return (store("zz:name") || MODE.me || "").trim(); }
 function renderWho() {
@@ -980,12 +982,86 @@ function submitRequest(body) {
 
 // ---------- Задания по дому: Сергей или Олеся увидели проблему → задание сотруднику с фото ----------
 function taskText(t) { return "Задание · " + houseOf(t.house).name + " · " + fmtDT(t.at) + "\n" + t.text + (t.photos ? "\nФото: " + t.photos + " (прикладываю в чат)" : "") + "\nОт: " + t.by; }
+
+// v8.6: задания с ответственным, сроком и привязкой к брони.
+function taskAssignee(t) { return ((t && t.assignee) || "").trim(); }
+function taskForMe(t) { // видно текущему сотруднику: его, «все» или без ответственного
+  var me = whoAmI(); if (!me) return false;
+  var a = taskAssignee(t);
+  return !a || a === "все" || a === me;
+}
+function taskBooking(t) { return (t && t.bookingId && typeof byId === "function") ? (byId(t.bookingId) || null) : null; }
+function fmtDeadline(d) { // «к 15:00 12 ноя» или «к 12 ноя»
+  if (!d) return "";
+  var day = dOf(d), tm = (String(d).length >= 16 ? tOf(d) : ""), p = day.split("-");
+  if (p.length < 3) return "";
+  return "к " + (tm ? tm + " " : "") + (+p[2]) + " " + (MONTHS[+p[1] - 1] || "");
+}
+// Карточка одного задания (общая для «Мои задания» и пульта).
+function taskCard(t) {
+  var c = el("div", "task"); c.style.setProperty("--hc", "var(--h-" + t.house + ")");
+  var bk = taskBooking(t);
+  var ctx = houseOf(t.house).name + (bk ? " · " + guestName(bk) : "");
+  var isNote = t.kind === "note";
+  var r1 = el("div", "row1");
+  r1.appendChild(el("span", "kind", ctx));
+  r1.appendChild(el("span", "pill " + (isNote ? "ok" : "warn"), isNote ? "Обрати внимание" : "Сделать"));
+  c.appendChild(r1);
+  c.appendChild(el("div", "ttxt", t.text || ""));
+  var dl = fmtDeadline(t.deadline); // срок — заметной строкой, не в серой мете
+  if (dl) c.appendChild(el("div", "dline", "Срок " + dl));
+  var meta = "От: " + (t.by || "—");
+  if (taskAssignee(t) && taskAssignee(t) !== "все") meta += " · для: " + taskAssignee(t);
+  c.appendChild(el("div", "meta", meta));
+  if (!isNote) {
+    var row = el("div", "btnrow");
+    var live = !!MODE.db;
+    var pb = (live && t.photos > 0) ? photoButton("tasks", t) : null;
+    if (pb) row.appendChild(pb);
+    if (live && canTryDb()) {
+      var done = el("button", "btn sm", "Сделано"); done.type = "button"; done.id = "my-done-" + t.id;
+      done.addEventListener("click", function () {
+        var who = store("zz:name") || ""; done.disabled = true;
+        MODE.db.doc("tasks/" + t.id).update({ done: true, doneBy: who, doneAt: almatyNow(), notified: false }).then(function () { toast("Отмечено: сделано"); }, function () { done.disabled = false; toast("Не сохранилось, попробуй ещё раз"); });
+      });
+      row.appendChild(done);
+    } else if (!live) {
+      var th = el("span", "hint", t.photos > 0 ? "Фото к заданию — в чате «" + STAFF_CHAT + "»." : "");
+      var doneWa = waButton("my-done-" + (t.id || ""), function () {
+        var who = whoAmI(); if (!who) { openGate(); return null; }
+        return "✅ Сделано · " + ctx + "\n" + (t.text || "") + "\n" + who + ", " + fmtDT(almatyNow());
+      }, null, th, null);
+      doneWa.textContent = "Сделано → WhatsApp"; doneWa.className = "btn sm";
+      row.appendChild(doneWa); row.appendChild(th);
+    }
+    c.appendChild(row);
+    if (pb) c.appendChild(pb.grid);
+  }
+  return c;
+}
+// «Мои задания» — блок сверху: задания и заметки для текущего сотрудника.
+function renderMyTasks() {
+  var box = document.getElementById("mytasks"); if (!box) return;
+  box.textContent = "";
+  var me = whoAmI(); if (!me) return;
+  var all = MODE.db ? (typeof TASKS !== "undefined" ? TASKS : []) : (DATA.tasks || []);
+  var open = all.filter(function (t) { return !t.done && taskForMe(t); });
+  if (!open.length) return; // пусто — блок не показываем
+  // Сначала с ближайшим сроком, затем без срока; заметки — внизу.
+  open.sort(function (a, b) {
+    var an = a.kind === "note" ? 1 : 0, bn = b.kind === "note" ? 1 : 0; if (an !== bn) return an - bn;
+    var ad = a.deadline || "9999", bd = b.deadline || "9999"; return ad < bd ? -1 : ad > bd ? 1 : 0;
+  });
+  box.appendChild(el("h2", "sec", "Мои задания"));
+  open.forEach(function (t) { box.appendChild(taskCard(t)); });
+}
 function renderTasks() {
   var box = document.getElementById("tasks");
   box.textContent = "";
+  if (!canTryDb()) return; // v8.6: у сотрудника задания показаны сверху в блоке «Мои задания»
   var live = !!MODE.db;
   var open = live ? TASKS.filter(function (t) { return !t.done; }) : (DATA.tasks || []);
-  box.appendChild(el("h2", "sec", "Задания по дому"));
+  box.appendChild(el("h2", "sec", "Все задания"));
   if (!open.length) box.appendChild(el("p", "hint", "Открытых заданий нет."));
   open.forEach(function (t) {
     var c = el("div", "task");
@@ -1026,6 +1102,15 @@ function renderTasks() {
     var hsel = document.createElement("select"); hsel.className = "field"; hsel.id = "t-house";
     DATA.houses.forEach(function (h) { var o = document.createElement("option"); o.value = h.id; o.textContent = h.name; hsel.appendChild(o); });
     f.appendChild(hsel);
+    var asel = document.createElement("select"); asel.className = "field"; asel.id = "t-assignee";
+    ["все", "Ирина", "Дулат", "Олеся"].forEach(function (a) { var o = document.createElement("option"); o.value = a; o.textContent = a === "все" ? "Ответственный: все" : "Ответственный: " + a; asel.appendChild(o); });
+    f.appendChild(asel);
+    var bsel = document.createElement("select"); bsel.className = "field"; bsel.id = "t-booking";
+    var o0 = document.createElement("option"); o0.value = ""; o0.textContent = "Без привязки к брони"; bsel.appendChild(o0);
+    (DATA.bookings || []).forEach(function (bk) { var o = document.createElement("option"); o.value = bk.id; o.textContent = houseOf(bk.house).name + " · " + guestName(bk) + " · " + fmtDT(bk.inAt); bsel.appendChild(o); });
+    f.appendChild(bsel);
+    var dsel = document.createElement("input"); dsel.className = "field"; dsel.id = "t-deadline"; dsel.type = "datetime-local"; dsel.setAttribute("aria-label", "Срок (необязательно)");
+    f.appendChild(el("div", "grp", "Срок (необязательно)")); f.appendChild(dsel);
     var txt = document.createElement("textarea"); txt.className = "field"; txt.id = "t-text"; txt.placeholder = "Что сделать: например, помыть казан, протереть полы на кухне";
     f.appendChild(txt);
     var st = { photos: [] };
@@ -1039,11 +1124,11 @@ function renderTasks() {
       var text = txt.value.trim(); if (!text) { hint.className = "hint err"; hint.textContent = "Напиши, что сделать."; return; }
       var who = whoAmI(); if (!who) { openGate(); return; }
       var now = almatyNow();
-      var body = { house: hsel.value, text: text, by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, seen: false, notified: false };
+      var body = { house: hsel.value, text: text, assignee: asel.value, deadline: dsel.value || "", bookingId: bsel.value || "", by: who, at: now, day: now.slice(0, 10), photos: st.photos.length, done: false, kind: "task", seen: false, notified: false };
       send.disabled = true; hint.textContent = "Создаю…";
       submitDoc("tasks", body, st.photos, taskText(body)).then(function (how) {
         send.disabled = false;
-        if (how === "db") { toast("Задание создано"); txt.value = ""; st.photos = []; return; }
+        if (how === "db") { toast("Задание создано"); txt.value = ""; dsel.value = ""; st.photos = []; return; }
         hint.className = "hint err"; hint.textContent = how === "copied" || how === "manual" ? "Нет доступа к базе: текст скопирован, отправь в чат." : how;
       });
     });
@@ -1736,7 +1821,7 @@ document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !d
 
 // ---------- Вкладка «Отчёты» (видна вошедшим в claude.ai) ----------
 // v8.0: разделы нижнего меню. main — шахматка, «Сейчас», задания; buy — закупка; info — инструкции; reports — только пульт.
-var SECTIONS = { main: ["cal", "calhint", "today", "tasks"], buy: ["buy"], info: ["ginfo"] };
+var SECTIONS = { main: ["mytasks", "cal", "calhint", "today", "tasks"], buy: ["buy"], info: ["ginfo"] };
 var CUR_SEC = "main";
 function showSection(name) {
   CUR_SEC = name;
@@ -1955,11 +2040,13 @@ function renderHeader() {
   var gen = DATA.generated || "";
   var st = document.getElementById("stale");
   var ageH = gen.length >= 16 ? (Date.parse(almatyNow() + ":00Z") - Date.parse(gen + ":00Z")) / 3600000 : 999;
-  if (ageH > 26) { st.hidden = false; st.textContent = "График не обновлялся с " + fmtDT(gen) + ". Уточни заезды у Сергея."; }
+  var le = document.getElementById("loaderr"); var errShown = le && !le.hidden; // плашка ошибки уже показывает старость — не дублируем
+  if (errShown) { /* не трогаем #stale */ }
+  else if (ageH > 26) { st.hidden = false; st.textContent = "График не обновлялся с " + fmtDT(gen) + ". Уточни заезды у Сергея."; }
   else st.hidden = true;
   document.getElementById("foot").textContent = "Данные обновлены " + fmtDT(gen) + ". Показаны только имена гостей, без контактов." + " Версия " + APP_VER + (window.ZZ_VER ? " (сборка " + window.ZZ_VER + ")" : "") + ".";
 }
-function renderAll() { renderHeader(); renderCal(); renderToday(); renderTasks(); renderBuy(); renderGuestInfo(); renderReports(); updateBadge(); if (typeof showSection === "function") showSection(CUR_SEC); }
+function renderAll() { renderHeader(); renderMyTasks(); renderCal(); renderToday(); renderTasks(); renderBuy(); renderGuestInfo(); renderReports(); updateBadge(); if (typeof showSection === "function") showSection(CUR_SEC); }
 
 // ---------- Тема: как на телефоне (авто), светлая или тёмная ----------
 var THEME_MQ = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -2005,40 +2092,46 @@ weatherLoad(); // прогноз по Бескайнару → погода/от
 // Последняя удачная копия хранится на телефоне — без связи приложение открывается с ней.
 var DATA_URL = (typeof window.ZZ_DATA_URL === "string" && window.ZZ_DATA_URL) ? window.ZZ_DATA_URL : "data.json";
 function validData(j) { return !!(j && Array.isArray(j.bookings) && Array.isArray(j.houses) && j.rules); }
-// Плашка «не удалось обновить»: ошибка загрузки должна быть видна, а не молча оставлять старый график.
+// Файл данных бывает обычным JSON и base64 (feed.txt — чтобы имена гостей не индексировались).
+function parseFeed(t) {
+  try { return JSON.parse(t); } catch (e) {}
+  try { var bin = atob(t.replace(/\s+/g, "")); var u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return JSON.parse(new TextDecoder("utf-8").decode(u8)); } catch (e2) { return null; }
+}
+// Одна красная плашка: обновление не удалось. Техническую деталь — в консоль, сотруднику — простыми словами.
 function showLoadError(reason) {
   var e2 = document.getElementById("loaderr"); if (!e2) return;
   var gen = DATA.generated ? fmtDT(DATA.generated) : "неизвестно когда";
   e2.hidden = false;
-  e2.textContent = "Не удалось обновить: " + reason + ". Показаны данные от " + gen + ". Потяни вниз и переоткрой приложение; если не ушло — сообщи Сергею.";
+  e2.textContent = "Не удалось обновить. Показаны данные от " + gen + ". " + reason + " Потяни вниз и переоткрой приложение; если не помогло — сообщи Сергею.";
+  var st = document.getElementById("stale"); if (st) st.hidden = true; // не дублируем красным
 }
 function clearLoadError() { var e2 = document.getElementById("loaderr"); if (e2) e2.hidden = true; }
 try {
   var cached = JSON.parse(store("zz:data") || "null");
   if (validData(cached) && (!DATA.generated || String(cached.generated) > String(DATA.generated))) { DATA = cached; renderAll(); }
 } catch (e) {}
-try {
-  // Файл может быть и обычным JSON, и base64-кодированным (feed.txt на отдельном адресе — чтобы имена гостей не индексировались).
-  function parseFeed(t) {
-    try { return JSON.parse(t); } catch (e) {}
-    try { var bin = atob(t.replace(/\s+/g, "")); var u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i); return JSON.parse(new TextDecoder("utf-8").decode(u8)); } catch (e2) { return null; }
-  }
-  // Обойти кэш браузера/CDN на самом адресе данных (кэш service worker обходит no-store + сеть-сначала).
-  var furl = DATA_URL + (DATA_URL.indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now();
+// Свежие данные: при старте, при возврате в приложение и раз в 10 минут (быстрее заданий без доп. нагрузки на прогон).
+var feedBusy = false;
+function refreshFeed() {
+  if (feedBusy) return; feedBusy = true;
+  var furl = DATA_URL + (DATA_URL.indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now(); // обход кэша браузера/CDN
   fetch(furl, { cache: "no-store" }).then(function (r) {
-    if (!r.ok) { showLoadError("сервер ответил " + r.status); return null; }
+    if (!r.ok) { console.log("zz feed http " + r.status); showLoadError("Сервер недоступен."); return null; }
     return r.text();
   }).then(function (t) {
+    feedBusy = false;
     if (t == null) return; // ошибка уже показана
     var j = parseFeed(t);
-    if (!j) { showLoadError("не удалось прочитать данные (формат)"); return; }
-    if (!validData(j)) { showLoadError("данные неполные"); return; }
+    if (!j) { console.log("zz feed parse failed"); showLoadError("Данные пришли битые."); return; }
+    if (!validData(j)) { showLoadError("Данные неполные."); return; }
     DATA = j; try { localStorage.setItem("zz:data", JSON.stringify(j)); } catch (e) {}
     clearLoadError(); renderAll();
-  }).catch(function (err) {
-    showLoadError("нет связи" + (err && err.message ? " (" + String(err.message).slice(0, 40) + ")" : ""));
-  });
-} catch (e) {}
+  }).catch(function (err) { feedBusy = false; console.log("zz feed error", err); showLoadError("Нет связи."); });
+}
+refreshFeed();
+document.addEventListener("visibilitychange", function () { if (!document.hidden) refreshFeed(); });
+window.addEventListener("focus", function () { refreshFeed(); });
+setInterval(function () { if (!document.hidden) refreshFeed(); }, 600000);
 
 // ---------- Установка как приложение (отдельный адрес): кнопка «Установить» на Android, подсказка на iPhone ----------
 var INSTALL_EVT = null;
